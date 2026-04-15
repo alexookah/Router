@@ -17,7 +17,6 @@ public struct RoutingView<Content: View, Destination: Routable>: View
     public var body: some View {
         NavigationStack(path: $router.path) {
             rootContent(router)
-                #if os(iOS)
                 .if(!router.isRootRouter && router.dismissOptions.showDismissButton) {
                     $0.toolbar {
                         DismissToolbar(
@@ -26,10 +25,8 @@ public struct RoutingView<Content: View, Destination: Routable>: View
                         )
                     }
                 }
-                #endif
                 .navigationDestination(for: Destination.self) { route in
                     router.view(for: route)
-                        #if os(iOS)
                         .if(router.showDismissButtonOnPush) {
                             $0.toolbar {
                                 DismissToolbar(
@@ -38,7 +35,6 @@ public struct RoutingView<Content: View, Destination: Routable>: View
                                 )
                             }
                         }
-                        #endif
                 }
         }
         .sheet(item: $router.presentingSheet, onDismiss: router.onPresentationDismissed) { route in
@@ -50,13 +46,11 @@ public struct RoutingView<Content: View, Destination: Routable>: View
             }
             .presentationDragIndicator(router.sheetPresentationOptions.dragIndicator)
         }
-        #if os(iOS)
         .fullScreenCover(item: $router.presentingFullScreenCover, onDismiss: router.onPresentationDismissed) { route in
             RoutingView(router.routerFor(routeType: .fullScreenCover)) { childRouter in
                 childRouter.start(route)
             }
         }
-        #endif
         .environment(router)
     }
 }

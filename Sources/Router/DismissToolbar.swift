@@ -1,6 +1,5 @@
 import SwiftUI
 
-#if os(iOS)
 struct DismissToolbar: ToolbarContent {
     let dismissOptions: DismissButtonPresentationOptions
     let dismissAction: () -> Void
@@ -34,4 +33,3 @@ struct DismissToolbar: ToolbarContent {
         }
     }
 }
-#endif
