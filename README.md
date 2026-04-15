@@ -318,3 +318,7 @@ To run it, open `ExampleRouterDemo/ExampleRouterDemo.xcodeproj` and add the `Rou
 ## License
 
 MIT
+
+---
+
+If you find Router useful, consider giving it a star. It helps others discover the project.
