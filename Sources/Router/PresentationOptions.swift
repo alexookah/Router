@@ -6,7 +6,7 @@ public struct SheetPresentationOptions: Equatable {
 
     public init(
         detents: Set<PresentationDetent>? = nil,
-        dragIndicator: Visibility = .visible
+        dragIndicator: Visibility = .automatic
     ) {
         self.detents = detents
         self.dragIndicator = dragIndicator
