@@ -5,14 +5,8 @@ struct DismissToolbar: ToolbarContent {
     let dismissAction: () -> Void
 
     var body: some ToolbarContent {
-        if dismissOptions.dismissButtonPosition == .left {
-            ToolbarItem(placement: .topBarLeading) {
-                dismissButton
-            }
-        } else {
-            ToolbarItem(placement: .topBarTrailing) {
-                dismissButton
-            }
+        ToolbarItem(placement: dismissOptions.dismissButtonPosition == .left ? .topBarLeading : .topBarTrailing) {
+            dismissButton
         }
     }
 
