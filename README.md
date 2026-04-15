@@ -321,4 +321,4 @@ MIT
 
 ---
 
-If you find Router useful, consider giving it a star. It helps others discover the project.
+If you find Router useful, give it a :star: — it helps others discover the project.

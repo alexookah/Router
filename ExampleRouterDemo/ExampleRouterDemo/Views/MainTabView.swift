@@ -9,14 +9,14 @@ import SwiftUI
 import Router
 
 enum AppTab: String, CaseIterable, Hashable {
-    case home, search, profile, deepLinks
+    case home, stacking, profile, deepLinks
 }
 
 struct MainTabView: View {
     @State private var selectedTab: AppTab = .home
 
     @State var homeRouter = AppRouter()
-    @State var searchRouter = AppRouter()
+    @State var stackingRouter = AppRouter()
     @State var profileRouter = AppRouter()
     @State var deepLinksRouter = AppRouter()
 
@@ -28,9 +28,9 @@ struct MainTabView: View {
                 }
             }
 
-            Tab("Search", systemImage: "magnifyingglass", value: AppTab.search) {
-                RoutingView(searchRouter) { router in
-                    router.start(.search(.search))
+            Tab("Stacking", systemImage: "square.stack", value: AppTab.stacking) {
+                RoutingView(stackingRouter) { router in
+                    router.start(.stacking(.stacking))
                 }
             }
 
@@ -61,14 +61,6 @@ struct MainTabView: View {
             selectedTab = .home
             if let id = path.first {
                 homeRouter.push(route: .home(.detail(id)))
-            }
-        case "search":
-            selectedTab = .search
-            if let query = path.first {
-                searchRouter.presentSheet(
-                    route: .search(.results(query)),
-                    options: .init(detents: [.medium, .large])
-                )
             }
         case "profile":
             selectedTab = .profile

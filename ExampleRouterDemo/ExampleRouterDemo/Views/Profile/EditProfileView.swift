@@ -13,17 +13,13 @@ struct EditProfileView: View {
 
     var body: some View {
         List {
-            Section("Edit Profile") {
-                Text("This is presented as a full-screen cover.")
-                Text("The dismiss button is on the right (dismissButtonPosition: .right).")
+            Section {
+                Text("Full-screen cover with dismiss button on the right.")
             }
 
-            Section("Actions") {
+            Section {
                 Button("Save & Dismiss") {
                     router.dismissSelf()
-                }
-                Button("Dismiss All From Root") {
-                    router.dismissAllFromRoot()
                 }
             }
         }

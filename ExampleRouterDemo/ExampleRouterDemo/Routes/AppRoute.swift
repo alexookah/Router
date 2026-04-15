@@ -12,15 +12,15 @@ import Router
 
 enum AppRoute: Routable {
     case home(HomeRoute)
-    case search(SearchRoute)
     case profile(ProfileRoute)
+    case stacking(StackingRoute)
     case deepLinks(DeepLinksRoute)
 
     func destination() -> some View {
         switch self {
         case let .home(route): route.destination()
-        case let .search(route): route.destination()
         case let .profile(route): route.destination()
+        case let .stacking(route): route.destination()
         case let .deepLinks(route): route.destination()
         }
     }
@@ -44,18 +44,6 @@ enum HomeRoute: Routable {
     }
 }
 
-enum SearchRoute: Routable {
-    case search
-    case results(String)
-
-    func destination() -> some View {
-        switch self {
-        case .search: SearchView()
-        case let .results(query): SearchResultsView(query: query)
-        }
-    }
-}
-
 enum ProfileRoute: Routable {
     case profile
     case editProfile
@@ -64,6 +52,18 @@ enum ProfileRoute: Routable {
         switch self {
         case .profile: ProfileView()
         case .editProfile: EditProfileView()
+        }
+    }
+}
+
+enum StackingRoute: Routable {
+    case stacking
+    case layer(Int)
+
+    func destination() -> some View {
+        switch self {
+        case .stacking: StackingView()
+        case let .layer(depth): LayerView(depth: depth)
         }
     }
 }

@@ -13,20 +13,13 @@ struct SettingsView: View {
 
     var body: some View {
         List {
-            Section("Settings") {
-                Text("This is the settings screen, presented as a full-screen cover.")
-                Text("Notice the dismiss button in the top-left corner.")
+            Section {
+                Text("Presented as a full-screen cover with a dismiss button.")
             }
 
-            Section("Navigation Within Modal") {
-                Button("Push Detail (inside full-screen cover)") {
+            Section("Navigate Inside Modal") {
+                Button("Push Detail") {
                     router.push(route: .home(.detail("settings-inner")))
-                }
-            }
-
-            Section("Dismiss") {
-                Button("Dismiss Self") {
-                    router.dismissSelf()
                 }
             }
         }

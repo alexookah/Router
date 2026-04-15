@@ -13,28 +13,16 @@ struct ProfileView: View {
 
     var body: some View {
         List {
-            Section("Profile") {
+            Section {
                 Text("User: Demo User")
                 Text("Email: demo@example.com")
             }
 
-            Section("Actions") {
-                Button("Edit Profile (Full-Screen Cover)") {
+            Section {
+                Button("Edit Profile (Full Screen)") {
                     router.present(
                         route: .profile(.editProfile),
-                        dismissOptions: .init(
-                            showDismissButton: true,
-                            dismissButtonPosition: .right
-                        )
-                    )
-                }
-            }
-
-            Section("Cross-Tab Demo") {
-                Button("Present Home Detail (via Root)") {
-                    router.presentSheet(
-                        route: .home(.detail("from-profile")),
-                        target: .root
+                        dismissOptions: .init(dismissButtonPosition: .right)
                     )
                 }
             }

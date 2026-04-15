@@ -13,7 +13,6 @@ struct DeepLinksView: View {
     private let deepLinks: [(label: String, description: String, url: String)] = [
         ("Home", "Switches to Home tab", "routerdemo://home"),
         ("Home Detail", "Switches to Home tab, pushes Detail \"42\"", "routerdemo://home/42"),
-        ("Search Results", "Switches to Search tab, opens results sheet for \"SwiftUI\"", "routerdemo://search/SwiftUI"),
         ("Edit Profile", "Switches to Profile tab, opens full-screen editor", "routerdemo://profile/edit"),
     ]
 
