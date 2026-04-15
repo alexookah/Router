@@ -82,8 +82,10 @@ struct MainTabView: View {
     }
 
     /// Delays navigation slightly to let the tab switch animation settle.
-    private func navigateAfterTabSwitch(_ action: @escaping () -> Void) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+    @MainActor
+    private func navigateAfterTabSwitch(_ action: @escaping @MainActor () -> Void) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(0.3))
             action()
         }
     }
