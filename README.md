@@ -2,6 +2,15 @@
 
 A lightweight SwiftUI navigation library that decouples routing logic from views. Built on `@Observable` for iOS 17+.
 
+## Why Router?
+
+Most SwiftUI routing libraries scope navigation to a single `NavigationStack`. Router goes further:
+
+- **Any screen, from anywhere** — Define a single route enum wrapping per-feature routes, and any screen can be pushed, presented as a sheet, or shown as a full-screen cover from any tab. No passing routers between views, no manual wiring.
+- **Hierarchical navigation** — Routers form a parent-child chain when modals are presented. `NavigationTarget` lets you direct actions to any point in the hierarchy — present on the root, push on the parent, or stack on the deepest child.
+- **Modern Swift** — Built on `@Observable` and `@Environment`, not legacy `ObservableObject` and `@EnvironmentObject`.
+- **Deep linking with tab support** — Handle deep links that switch tabs and navigate within them, using a single `.onDeepLink` modifier.
+
 ## Features
 
 - **Type-safe routing** via `Routable` enums — each case maps to a view
