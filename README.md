@@ -150,16 +150,39 @@ router.replaceLast(with: .detail("3"))
 router.lastPathIs(.detail("3")) // true
 ```
 
-## NavigationTarget
+## Router Hierarchy
 
-Control which router in the hierarchy receives the action:
+When you present a sheet or full-screen cover, Router automatically creates a **child router** for the modal. This forms a parent-child chain:
+
+```
+Root Router (tab)
+  └── Child Router (sheet)
+        └── Child Router (full-screen cover inside the sheet)
+```
+
+Each child has a reference to its parent. When a modal is dismissed, its child router is automatically cleaned up.
+
+### NavigationTarget
+
+`NavigationTarget` lets you direct navigation actions to any point in this hierarchy:
+
+| Target | Description |
+|--------|-------------|
+| `.current` | This router (default) |
+| `.parent` | The parent router |
+| `.child` | The child router |
+| `.root` | The top-most router in the chain |
+| `.deepest` | The furthest child (leaf) in the chain |
 
 ```swift
-router.push(route: .detail("1"), target: .current)  // this router (default)
-router.push(route: .detail("1"), target: .parent)   // parent router
-router.push(route: .detail("1"), target: .root)     // root router
-router.push(route: .detail("1"), target: .deepest)  // deepest child
-router.presentSheet(route: .settings, target: .root) // present from root
+// From inside a sheet, push on the parent's navigation stack
+router.push(route: .detail("1"), target: .parent)
+
+// From anywhere, present on the root router
+router.presentSheet(route: .settings, target: .root)
+
+// Stack a modal on top of an existing modal
+router.presentSheet(route: .profile, target: .deepest)
 ```
 
 This enables cross-tab routing and modal stacking without passing routers around manually.
