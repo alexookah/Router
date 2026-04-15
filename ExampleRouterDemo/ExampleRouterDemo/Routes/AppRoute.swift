@@ -1,5 +1,34 @@
+//
+//  AppRoute.swift
+//  ExampleRouterDemo
+//
+//  Created by Alexandros Lykesas on 15/4/26.
+//
+
 import SwiftUI
 import Router
+
+// MARK: - Top-Level Route
+
+enum AppRoute: Routable {
+    case home(HomeRoute)
+    case search(SearchRoute)
+    case profile(ProfileRoute)
+    case deepLinks(DeepLinksRoute)
+
+    func destination() -> some View {
+        switch self {
+        case let .home(route): route.destination()
+        case let .search(route): route.destination()
+        case let .profile(route): route.destination()
+        case let .deepLinks(route): route.destination()
+        }
+    }
+}
+
+typealias AppRouter = Router<AppRoute>
+
+// MARK: - Per-Feature Routes
 
 enum HomeRoute: Routable {
     case home
@@ -39,18 +68,12 @@ enum ProfileRoute: Routable {
     }
 }
 
-enum AppRoute: Routable {
-    case home(HomeRoute)
-    case search(SearchRoute)
-    case profile(ProfileRoute)
+enum DeepLinksRoute: Routable {
+    case deepLinks
 
     func destination() -> some View {
         switch self {
-        case let .home(route): route.destination()
-        case let .search(route): route.destination()
-        case let .profile(route): route.destination()
+        case .deepLinks: DeepLinksView()
         }
     }
 }
-
-typealias AppRouter = Router<AppRoute>
