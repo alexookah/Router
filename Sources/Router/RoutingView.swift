@@ -38,7 +38,7 @@ public struct RoutingView<Content: View, Destination: Routable>: View
                 }
         }
         .sheet(item: $router.presentingSheet, onDismiss: router.onPresentationDismissed) { route in
-            RoutingView(router.routerFor(routeType: .sheet)) { childRouter in
+            RoutingView(router.routerFor(routeType: .sheet())) { childRouter in
                 childRouter.start(route)
             }
             .ifLet(router.sheetPresentationOptions.detents) { view, detents in
@@ -47,7 +47,7 @@ public struct RoutingView<Content: View, Destination: Routable>: View
             .presentationDragIndicator(router.sheetPresentationOptions.dragIndicator)
         }
         .fullScreenCover(item: $router.presentingFullScreenCover, onDismiss: router.onPresentationDismissed) { route in
-            RoutingView(router.routerFor(routeType: .fullScreenCover)) { childRouter in
+            RoutingView(router.routerFor(routeType: .fullScreenCover())) { childRouter in
                 childRouter.start(route)
             }
         }
