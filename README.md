@@ -315,7 +315,7 @@ The `ExampleRouterDemo` Xcode project demonstrates all features with a 4-tab app
 - **Profile** — full-screen cover with dismiss button positioning
 - **Deep Links** — tappable deep link URLs that trigger tab switching and navigation
 
-To run it, open `ExampleRouterDemo/ExampleRouterDemo.xcodeproj` and add the `Router` package as a local dependency.
+To run it, open `ExampleRouterDemo/ExampleRouterDemo.xcodeproj` — the Router package is already included as a local dependency.
 
 ## License
 
