@@ -310,8 +310,8 @@ router.presentSheet(
 
 The `ExampleRouterDemo` Xcode project demonstrates all features with a 4-tab app:
 
-- **Home** — push navigation, sheets, full-screen covers, cross-tab routing, stack manipulation
-- **Search** — sheet with detents, modal stacking
+- **Home** — push navigation, full-screen covers, cross-tab routing
+- **Stacking** — present sheets on top of sheets using `target: .deepest`, dismiss all with `dismissAllFromRoot()`
 - **Profile** — full-screen cover with dismiss button positioning
 - **Deep Links** — tappable deep link URLs that trigger tab switching and navigation
 
