@@ -31,15 +31,6 @@ struct SearchResultsView: View {
                 Button("Dismiss") {
                     router.dismissSelf()
                 }
-                Button("Dismiss & Push Detail on Parent") {
-                    router.dismissAndRouteOnParent(route: .home(.detail("from-results")))
-                }
-                Button("Dismiss & Present Profile on Parent") {
-                    router.dismissAndRouteOnParent(
-                        route: .profile(.editProfile),
-                        via: .fullScreenCover()
-                    )
-                }
                 Button("Stack Another Sheet (target: .deepest)") {
                     router.presentSheet(
                         route: .profile(.profile),

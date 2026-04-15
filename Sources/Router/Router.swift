@@ -73,7 +73,6 @@ public final class Router<Destination: Routable> {
         }
     }
 
-
     // MARK: - Navigation
 
     public func push(route: Destination, target: NavigationTarget = .current) {
@@ -87,7 +86,7 @@ public final class Router<Destination: Routable> {
         target: NavigationTarget = .current
     ) {
         let router = targetRouter(for: target)
-        let child = router.routerFor(routeType: .fullScreenCover())
+        let child = router.routerFor(routeType: .fullScreenCover)
         child.dismissOptions = dismissOptions
         router.presentingFullScreenCover = route
     }
@@ -99,7 +98,7 @@ public final class Router<Destination: Routable> {
         target: NavigationTarget = .current
     ) {
         let router = targetRouter(for: target)
-        let child = router.routerFor(routeType: .sheet())
+        let child = router.routerFor(routeType: .sheet)
         child.dismissOptions = dismissOptions
         router.sheetPresentationOptions = options
         router.presentingSheet = route
@@ -147,29 +146,6 @@ public final class Router<Destination: Routable> {
 
     public func dismissSelf() {
         parentRouter?.dismissChild()
-    }
-
-    /// Dismisses this router's presentation and navigates on the parent router.
-    ///
-    /// After `dismissSelf()`, the child router is destroyed, so you can't call further
-    /// navigation on it. This method captures the parent reference before dismissing.
-    ///
-    /// ```swift
-    /// router.dismissAndRouteOnParent(route: .detail("1"), via: .push)
-    /// router.dismissAndRouteOnParent(route: .settings, via: .sheet(options: .init(detents: [.medium])))
-    /// router.dismissAndRouteOnParent(route: .profile, via: .fullScreenCover())
-    /// ```
-    public func dismissAndRouteOnParent(route: Destination, via type: NavigationType = .push) {
-        guard let parentRouter else { return }
-        parentRouter.dismissChild()
-        switch type {
-        case .push:
-            parentRouter.push(route: route)
-        case let .sheet(options, dismissOptions):
-            parentRouter.presentSheet(route: route, options: options, dismissOptions: dismissOptions)
-        case let .fullScreenCover(dismissOptions):
-            parentRouter.present(route: route, dismissOptions: dismissOptions)
-        }
     }
 
     public func dismissSelfOrPopToRoot() {
