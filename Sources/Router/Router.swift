@@ -54,11 +54,6 @@ public final class Router<Destination: Routable> {
         route.destination()
     }
 
-    @ViewBuilder
-    public func view(for route: Destination) -> Destination.ViewType {
-        route.destination()
-    }
-
     public func routerFor(routeType: NavigationType) -> Router {
         switch routeType {
         case .push:

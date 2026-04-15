@@ -26,7 +26,7 @@ public struct RoutingView<Content: View, Destination: Routable>: View
                     }
                 }
                 .navigationDestination(for: Destination.self) { route in
-                    router.view(for: route)
+                    route.destination()
                         .if(router.showDismissButtonOnPush) {
                             $0.toolbar {
                                 DismissToolbar(

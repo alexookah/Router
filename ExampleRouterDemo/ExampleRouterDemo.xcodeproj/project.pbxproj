@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		245152652F8F242C00D54ABC /* Router in Frameworks */ = {isa = PBXBuildFile; productRef = 245152642F8F242C00D54ABC /* Router */; };
+		245E96D22F8F9549007FE8E9 /* Router in Frameworks */ = {isa = PBXBuildFile; productRef = 245E96D12F8F9549007FE8E9 /* Router */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +29,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				245152652F8F242C00D54ABC /* Router in Frameworks */,
+				245E96D22F8F9549007FE8E9 /* Router in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,6 +73,7 @@
 			name = ExampleRouterDemo;
 			packageProductDependencies = (
 				245152642F8F242C00D54ABC /* Router */,
+				245E96D12F8F9549007FE8E9 /* Router */,
 			);
 			productName = ExampleRouterDemo;
 			productReference = 245152382F8F23B500D54ABC /* ExampleRouterDemo.app */;
@@ -101,7 +104,7 @@
 			mainGroup = 2451522F2F8F23B500D54ABC;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				245152632F8F242C00D54ABC /* XCLocalSwiftPackageReference "../../Router" */,
+				245E96D02F8F9549007FE8E9 /* XCLocalSwiftPackageReference "../../Router" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 245152392F8F23B500D54ABC /* Products */;
@@ -362,7 +365,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		245152632F8F242C00D54ABC /* XCLocalSwiftPackageReference "../../Router" */ = {
+		245E96D02F8F9549007FE8E9 /* XCLocalSwiftPackageReference "../../Router" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../../Router;
 		};
@@ -370,6 +373,10 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		245152642F8F242C00D54ABC /* Router */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Router;
+		};
+		245E96D12F8F9549007FE8E9 /* Router */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Router;
 		};
