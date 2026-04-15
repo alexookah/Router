@@ -2,6 +2,8 @@
 
 A lightweight SwiftUI navigation library that decouples routing logic from views. Built on `@Observable` for iOS 17+.
 
+https://github.com/user-attachments/assets/e8c350de-d9aa-4b7d-8135-532e5956e2aa
+
 ## Why Router?
 
 Most SwiftUI routing libraries scope navigation to a single `NavigationStack`. Router goes further:
