@@ -59,17 +59,32 @@ struct MainTabView: View {
         switch host {
         case "home":
             selectedTab = .home
+            homeRouter.dismissChild()
+            homeRouter.popToRoot()
             if let id = path.first {
-                homeRouter.push(route: .home(.detail(id)))
+                navigateAfterTabSwitch {
+                    homeRouter.push(route: .home(.detail(id)))
+                }
             }
         case "profile":
             selectedTab = .profile
+            profileRouter.dismissChild()
+            profileRouter.popToRoot()
             if path.first == "edit" {
-                profileRouter.present(route: .profile(.editProfile))
+                navigateAfterTabSwitch {
+                    profileRouter.present(route: .profile(.editProfile))
+                }
             }
         default:
             return false
         }
         return true
+    }
+
+    /// Delays navigation slightly to let the tab switch animation settle.
+    private func navigateAfterTabSwitch(_ action: @escaping () -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            action()
+        }
     }
 }

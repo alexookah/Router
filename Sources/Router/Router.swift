@@ -86,6 +86,7 @@ public final class Router<Destination: Routable> {
         target: NavigationTarget = .current
     ) {
         let router = targetRouter(for: target)
+        router.presentingSheet = nil
         let child = router.routerFor(routeType: .fullScreenCover)
         child.dismissOptions = dismissOptions
         router.presentingFullScreenCover = route
@@ -98,6 +99,7 @@ public final class Router<Destination: Routable> {
         target: NavigationTarget = .current
     ) {
         let router = targetRouter(for: target)
+        router.presentingFullScreenCover = nil
         let child = router.routerFor(routeType: .sheet)
         child.dismissOptions = dismissOptions
         router.sheetPresentationOptions = options
