@@ -2,7 +2,7 @@
 
 A lightweight SwiftUI navigation library that decouples routing logic from views. Built on `@Observable` for iOS 17+.
 
-https://github.com/user-attachments/assets/e8c350de-d9aa-4b7d-8135-532e5956e2aa
+<img width="320" height="703" alt="output_1776425725010" src="https://github.com/user-attachments/assets/dc7b945f-11d0-4f9d-a4c1-6b3a0ba64a61" />
 
 ## Why Router?
 
