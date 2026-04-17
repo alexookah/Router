@@ -26,6 +26,10 @@ public final class Router<Destination: Routable> {
         presentingSheet != nil || presentingFullScreenCover != nil
     }
 
+    public var isDismissing: Bool {
+        parentRouter?.isPresenting == false
+    }
+
     public var isRootRouter: Bool {
         parentRouter == nil
     }
@@ -163,16 +167,11 @@ public final class Router<Destination: Routable> {
 
     private func targetRouter(for target: NavigationTarget) -> Router {
         switch target {
-        case .current:
-            return self
-        case .parent:
-            return parentRouter ?? self
-        case .child:
-            return childRouter ?? self
-        case .root:
-            return rootRouter
-        case .deepest:
-            return deepestChildRouter ?? self
+        case .current: isDismissing ? (parentRouter ?? self) : self
+        case .parent: parentRouter ?? self
+        case .child: childRouter ?? self
+        case .root: rootRouter
+        case .deepest: deepestChildRouter ?? self
         }
     }
 
