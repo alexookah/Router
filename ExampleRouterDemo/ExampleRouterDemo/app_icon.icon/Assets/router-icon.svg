@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Indigo -> violet background gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4338CA"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+
+    <!-- Subtle top highlight on the R -->
+    <linearGradient id="rGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E0E7FF"/>
+    </linearGradient>
+
+    <!-- Soft glow under nodes -->
+    <radialGradient id="nodeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#67E8F9" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#67E8F9" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Full-bleed background (iOS masks to icon shape automatically) -->
+  <rect width="1024" height="1024" fill="url(#bgGrad)"/>
+
+  <!-- Geometric "R" drawn as a path for consistent rendering -->
+  <!-- Bounding box roughly 250,170 -> 760,854 -->
+  <path fill="url(#rGrad)" d="
+    M 265 170
+    L 265 854
+    L 405 854
+    L 405 590
+    L 525 590
+    L 665 854
+    L 820 854
+    L 670 580
+    C 770 545, 810 470, 810 380
+    C 810 260, 720 170, 570 170
+    Z
+    M 405 300
+    L 570 300
+    C 630 300, 670 335, 670 380
+    C 670 425, 630 460, 570 460
+    L 405 460
+    Z
+  "/>
+
+  <!-- Subtle connecting lines between the route nodes (behind nodes) -->
+  <path d="M 337 220 C 420 360, 540 400, 595 530 S 720 720, 740 820"
+        stroke="#67E8F9"
+        stroke-width="10"
+        stroke-linecap="round"
+        fill="none"
+        opacity="0.55"/>
+
+  <!-- Node glows -->
+  <circle cx="337" cy="220" r="90" fill="url(#nodeGlow)"/>
+  <circle cx="595" cy="530" r="80" fill="url(#nodeGlow)"/>
+  <circle cx="740" cy="820" r="90" fill="url(#nodeGlow)"/>
+
+  <!-- Nodes (cyan with white core) -->
+  <g>
+    <circle cx="337" cy="220" r="34" fill="#22D3EE"/>
+    <circle cx="337" cy="220" r="16" fill="#FFFFFF"/>
+  </g>
+  <g>
+    <circle cx="595" cy="530" r="28" fill="#22D3EE"/>
+    <circle cx="595" cy="530" r="13" fill="#FFFFFF"/>
+  </g>
+  <g>
+    <circle cx="740" cy="820" r="34" fill="#22D3EE"/>
+    <circle cx="740" cy="820" r="16" fill="#FFFFFF"/>
+  </g>
+</svg>
