@@ -119,7 +119,7 @@ public final class Router<Destination: Routable> {
         path.removeAll()
     }
 
-    public func replaceNavigationStack(with routes: [Destination]) {
+    public func replaceStack(with routes: [Destination]) {
         path = routes
     }
 

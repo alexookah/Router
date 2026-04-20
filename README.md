@@ -161,7 +161,7 @@ router.dismissAllFromRoot()  // dismiss entire hierarchy
 ### Stack Manipulation
 
 ```swift
-router.replaceNavigationStack(with: [.home, .detail("1"), .detail("2")])
+router.replaceStack(with: [.home, .detail("1"), .detail("2")])
 router.replaceLast(with: .detail("3"))
 router.lastPathIs(.detail("3")) // true
 ```
@@ -244,7 +244,7 @@ struct MainTabView: View {
 
 // From any child view — present a profile screen from the home tab
 struct HomeView: View {
-    @Environment(Router<AppRoute>.self) var router
+    @Environment(AppRouter.self) var router
 
     var body: some View {
         Button("View Profile") {

@@ -128,10 +128,10 @@ struct PopNavigationTests {
 @Suite("Stack Manipulation")
 struct StackManipulationTests {
     @MainActor
-    @Test func replaceNavigationStack() {
+    @Test func replaceStack() {
         let router = Router<TestRoute>()
         router.push(route: .home)
-        router.replaceNavigationStack(with: [.settings, .profile])
+        router.replaceStack(with: [.settings, .profile])
         #expect(router.path == [.settings, .profile])
     }
 
