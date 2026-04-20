@@ -1,8 +1,10 @@
 # Router
 
+<img src="assets/router-hero.svg" alt="Router" width="100%" />
+
 A lightweight SwiftUI navigation library that decouples routing logic from views. Built on `@Observable` for iOS 17+.
 
-<img width="320" height="703" alt="output_1776425725010" src="https://github.com/user-attachments/assets/dc7b945f-11d0-4f9d-a4c1-6b3a0ba64a61" />
+<img width="320" height="703" alt="output_1776425725010" src="assets/demo.gif" />
 
 ## Why Router?
 
