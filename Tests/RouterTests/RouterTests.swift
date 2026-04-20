@@ -190,6 +190,7 @@ struct SheetPresentationTests {
 
 // MARK: - Full Screen Cover
 
+#if os(iOS)
 @Suite("Full Screen Cover")
 struct FullScreenCoverTests {
     @MainActor
@@ -200,6 +201,7 @@ struct FullScreenCoverTests {
         #expect(router.isPresenting)
     }
 }
+#endif
 
 // MARK: - Dismissal
 

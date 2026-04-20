@@ -29,7 +29,8 @@ Most SwiftUI routing libraries scope navigation to a single `NavigationStack`. R
 ## Requirements
 
 - iOS 17+
-- Swift 5.9+
+- macOS 14+
+- Swift 6.0+
 
 ## Installation
 
@@ -129,6 +130,8 @@ router.presentSheet(
 ```
 
 ### Full-Screen Cover
+
+> `present()` is iOS only. macOS has no full-screen cover equivalent — use `presentSheet(...)` on macOS.
 
 ```swift
 router.present(route: .settings)

@@ -79,6 +79,9 @@ public final class Router<Destination: Routable> {
         router.path.append(route)
     }
 
+    #if os(iOS)
+    /// Presents a route as a full-screen cover. iOS only —
+    /// macOS has no full-screen cover equivalent; use `presentSheet(...)` instead.
     public func present(
         route: Destination,
         dismissOptions: DismissButtonPresentationOptions = .fullScreenDismissOptions,
@@ -90,6 +93,7 @@ public final class Router<Destination: Routable> {
         child.dismissOptions = dismissOptions
         router.presentingFullScreenCover = route
     }
+    #endif
 
     public func presentSheet(
         route: Destination,
