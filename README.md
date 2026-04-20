@@ -148,8 +148,8 @@ router.pop(last: 3)         // go back three
 router.popToRoot()           // clear the stack
 
 router.dismissChild()        // dismiss current sheet/fullScreenCover
-router.dismissSelf()         // ask parent to dismiss this modal
-router.dismissSelfOrPopToRoot() // smart dismiss
+router.dismiss()             // ask parent to dismiss this modal
+router.dismissOrPopToRoot() // smart dismiss
 router.dismissAllFromRoot()  // dismiss entire hierarchy
 ```
 

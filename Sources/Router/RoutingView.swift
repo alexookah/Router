@@ -21,7 +21,7 @@ public struct RoutingView<Content: View, Destination: Routable>: View
                     $0.toolbar {
                         DismissToolbar(
                             dismissOptions: router.dismissOptions,
-                            dismissAction: router.dismissSelfOrPopToRoot
+                            dismissAction: router.dismissOrPopToRoot
                         )
                     }
                 }
@@ -31,7 +31,7 @@ public struct RoutingView<Content: View, Destination: Routable>: View
                             $0.toolbar {
                                 DismissToolbar(
                                     dismissOptions: router.dismissOptions,
-                                    dismissAction: router.dismissSelfOrPopToRoot
+                                    dismissAction: router.dismissOrPopToRoot
                                 )
                             }
                         }

@@ -145,11 +145,11 @@ public final class Router<Destination: Routable> {
         }
     }
 
-    public func dismissSelf() {
+    public func dismiss() {
         parentRouter?.dismissChild()
     }
 
-    public func dismissSelfOrPopToRoot() {
+    public func dismissOrPopToRoot() {
         if let parentRouter, parentRouter.isPresenting {
             parentRouter.dismissChild()
         } else if !path.isEmpty {

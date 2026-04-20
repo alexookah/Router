@@ -19,7 +19,7 @@ struct EditProfileView: View {
 
             Section {
                 Button("Save & Dismiss") {
-                    router.dismissSelf()
+                    router.dismiss()
                 }
             }
         }

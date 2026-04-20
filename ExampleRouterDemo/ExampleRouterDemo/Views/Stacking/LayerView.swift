@@ -31,7 +31,7 @@ struct LayerView: View {
 
             Section {
                 Button("Dismiss This Layer") {
-                    router.dismissSelf()
+                    router.dismiss()
                 }
                 Button("Dismiss All From Root", role: .destructive) {
                     router.dismissAllFromRoot()

@@ -217,30 +217,30 @@ struct DismissalTests {
     }
 
     @MainActor
-    @Test func dismissSelf() {
+    @Test func dismiss() {
         let parent = Router<TestRoute>()
         parent.presentSheet(route: .settings)
         let child = parent.routerFor(routeType: .sheet)
-        child.dismissSelf()
+        child.dismiss()
         #expect(parent.presentingSheet == nil)
         #expect(!parent.hasChild)
     }
 
     @MainActor
-    @Test func dismissSelfOrPopToRootDismissesPresentedChild() {
+    @Test func dismissOrPopToRootDismissesPresentedChild() {
         let parent = Router<TestRoute>()
         parent.presentSheet(route: .settings)
         let child = parent.routerFor(routeType: .sheet)
-        child.dismissSelfOrPopToRoot()
+        child.dismissOrPopToRoot()
         #expect(parent.presentingSheet == nil)
     }
 
     @MainActor
-    @Test func dismissSelfOrPopToRootPopsWhenNotPresented() {
+    @Test func dismissOrPopToRootPopsWhenNotPresented() {
         let router = Router<TestRoute>()
         router.push(route: .home)
         router.push(route: .settings)
-        router.dismissSelfOrPopToRoot()
+        router.dismissOrPopToRoot()
         #expect(router.path.isEmpty)
     }
 
