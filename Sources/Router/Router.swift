@@ -27,7 +27,8 @@ public final class Router<Destination: Routable> {
     }
 
     public var isDismissing: Bool {
-        parentRouter?.isPresenting == false
+        guard let parentRouter else { return false }
+        return !parentRouter.isPresenting || parentRouter.isDismissing
     }
 
     public var isRootRouter: Bool {
@@ -171,12 +172,21 @@ public final class Router<Destination: Routable> {
 
     private func targetRouter(for target: NavigationTarget) -> Router {
         switch target {
-        case .current: isDismissing ? (parentRouter ?? self) : self
+        case .current: nearestActiveRouter
         case .parent: parentRouter ?? self
         case .child: childRouter ?? self
         case .root: rootRouter
         case .deepest: deepestChildRouter ?? self
         }
+    }
+
+    /// Walks up the parent chain to find the first router that isn't being dismissed.
+    private var nearestActiveRouter: Router {
+        var current = self
+        while current.isDismissing, let parent = current.parentRouter {
+            current = parent
+        }
+        return current
     }
 
     private var deepestChildRouter: Router? {
