@@ -1,6 +1,6 @@
 import SwiftUI
 
-public struct RoutingView<Content: View, Destination: Routable>: View
+public struct RoutingView<Content: View, Destination: Routable & Hashable & Identifiable>: View
     where Destination.ViewType == Content
 {
     @Bindable var router: Router<Destination>

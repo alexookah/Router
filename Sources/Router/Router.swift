@@ -2,7 +2,7 @@ import SwiftUI
 
 @MainActor
 @Observable
-public final class Router<Destination: Routable> {
+public final class Router<Destination: Routable & Hashable & Identifiable> {
 
     // MARK: - Public State
 
