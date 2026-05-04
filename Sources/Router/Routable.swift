@@ -43,5 +43,5 @@ public typealias Route = Routable & Hashable & Identifiable
 /// are already `Hashable`. Lives on `Identifiable` (not `Routable`) so Swift's witness
 /// inference can find it when satisfying the `Identifiable` conformance.
 extension Identifiable where Self: Routable & Hashable {
-    public var id: Self { self }
+    public nonisolated var id: Self { self }
 }
