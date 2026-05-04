@@ -4,13 +4,15 @@ import SwiftUI
 ///
 /// `Hashable` and `Identifiable` are required by `Router`/`RoutingView` (NavigationStack
 /// path + sheet item bindings), but are intentionally not inherited here — inheriting
-/// nonisolated stdlib protocols into a `@MainActor` protocol forces every conformance
-/// to use isolated-conformance syntax (`extension X: @MainActor Routable`). Requiring
-/// them at the use site (via the `Route` typealias) keeps route conformances clean.
-@MainActor
+/// nonisolated stdlib protocols would force every conformance to use isolated-conformance
+/// syntax. Requiring them at the use site (via the `Route` typealias) keeps route
+/// conformances clean.
+///
+/// Only `destination()` is `@MainActor`-isolated — the conforming type itself stays
+/// nonisolated so it can satisfy `Identifiable`/`Hashable` without crossing actor boundaries.
 public protocol Routable {
     associatedtype ViewType: View
-    @ViewBuilder func destination() -> ViewType
+    @MainActor @ViewBuilder func destination() -> ViewType
 }
 
 /// Convenience composition for a fully usable route type — the conformance bundle
