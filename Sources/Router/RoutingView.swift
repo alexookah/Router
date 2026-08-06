@@ -37,22 +37,7 @@ public struct RoutingView<Content: View, Destination: Routable>: View
                         }
                 }
         }
-        .sheet(item: $router.presentingSheet, onDismiss: router.onPresentationDismissed) { route in
-            RoutingView(router.routerFor(routeType: .sheet)) { childRouter in
-                childRouter.start(route)
-            }
-            .ifLet(router.sheetPresentationOptions.detents) { view, detents in
-                view.presentationDetents(detents)
-            }
-            .presentationDragIndicator(router.sheetPresentationOptions.dragIndicator)
-        }
-        #if os(iOS)
-        .fullScreenCover(item: $router.presentingFullScreenCover, onDismiss: router.onPresentationDismissed) { route in
-            RoutingView(router.routerFor(routeType: .fullScreenCover)) { childRouter in
-                childRouter.start(route)
-            }
-        }
-        #endif
+        .modifier(RouterPresentationsModifier(router: router))
         .environment(router)
     }
 }

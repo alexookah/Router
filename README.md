@@ -19,6 +19,8 @@ Most SwiftUI routing libraries scope navigation to a single `NavigationStack`. R
 
 - **Type-safe routing** via `Routable` enums — each case maps to a view
 - **Push, sheet, and full-screen cover** navigation with one generic `Router<Destination>`
+- **NavigationSplitView support** — `RoutingSplitView` + `SplitRouter` give each column its own router, plus screen-level modals
+- **Presentation without a stack** — `.routerPresentations(_:)` hosts router-driven modals on any container (split view, tab view, plain view)
 - **NavigationTarget** — route to `.current`, `.parent`, `.root`, or `.deepest` router in a hierarchy
 - **Cross-tab routing** — routers injected via `@Environment`, accessible from any child view
 - **Sheet presentation options** — detents, drag indicator
@@ -202,6 +204,81 @@ router.presentSheet(route: .profile, target: .deepest)
 ```
 
 This enables cross-tab routing and modal stacking without passing routers around manually.
+
+## NavigationSplitView
+
+A split view has multiple independent navigation surfaces — the sidebar stack, the detail stack, and modals that belong to the whole screen. `SplitRouter` owns all three, and `RoutingSplitView` renders them, the same way `RoutingView` pairs with a single `Router`.
+
+The three surfaces can share one route enum — any route can then go anywhere:
+
+```swift
+enum AppRoute: Routable { ... }
+
+let appRouter = SplitRouter<AppRoute, AppRoute, AppRoute>()
+
+RoutingSplitView(appRouter) { sidebar in
+    sidebar.start(.folders)
+} detail: { detail in
+    detail.start(.overview)
+}
+```
+
+Navigate through the facade or the underlying routers directly:
+
+```swift
+appRouter.pushSidebar(.folder(id))     // sidebar column stack
+appRouter.pushDetail(.article(id))     // detail column stack
+appRouter.presentModal(.settings)      // sheet/cover above the whole split view
+appRouter.detail.presentSheet(route: .filters)  // column-local modal
+
+appRouter.sidebarPath                  // direct path access
+appRouter.detailPath
+appRouter.popAllToRoot()
+```
+
+The type parameters are independent, so you can also give each surface its own enum when you want the compiler to reject cross-surface navigation (e.g. a detail-only route can never be pushed onto the sidebar):
+
+```swift
+let appRouter = SplitRouter<SidebarRoute, DetailRoute, ModalRoute>()
+```
+
+Use `Never` for the modals parameter when a screen has no screen-level modals: `SplitRouter<AppRoute, AppRoute, Never>`.
+
+`RoutingSplitView` also passes through `columnVisibility` and `preferredCompactColumn` bindings when you need them.
+
+> **Sidebar rows: prefer `List(selection:)`.** In compact width (iPhone, iPad Split View), `NavigationSplitView` only switches to the detail pane automatically when navigation comes from a `List` selection change. Plain `Button` rows swap state without moving the user, which reads as "nothing happened" on iPhone — if you use them, drive the `preferredCompactColumn` binding yourself. A clean pattern that keeps your coordinator in charge is a custom binding:
+>
+> ```swift
+> List(selection: Binding(
+>     get: { coordinator.selection },
+>     set: { coordinator.select($0) }   // choreography lives in one place
+> )) { ... }
+> ```
+
+### Presenting from containers without a stack
+
+`RoutingView` bundles a `NavigationStack` with modal hosting. When the presenting context owns its navigation — a split view, a `TabView`, or a stack driven elsewhere — attach just the modal hosting:
+
+```swift
+NavigationSplitView { sidebar } detail: { detail }
+    .routerPresentations(modalsRouter)
+
+modalsRouter.presentSheet(route: .settings)
+```
+
+### Destinations that own their navigation
+
+Presented routes are normally wrapped in a `RoutingView` so they can push and present further. If a destination *is* a navigation container (a `NavigationSplitView`, or a view that builds its own `NavigationStack`), declare it on the route and it presents bare:
+
+```swift
+enum ModalRoute: Routable {
+    case fullScreenWorkspace
+
+    var providesOwnNavigation: Bool { true }
+
+    func destination() -> some View { WorkspaceSplitView() }
+}
+```
 
 ## Cross-Tab Routing
 
