@@ -2,8 +2,8 @@ import SwiftUI
 import Testing
 @testable import Router
 
-@Suite("RoutingSplitView")
-struct RoutingSplitViewTests {
+@Suite("SplitRoutingView")
+struct SplitRoutingViewTests {
     enum SidebarRoute: Routable {
         case root
         func destination() -> some View { Text("Sidebar") }
@@ -25,7 +25,7 @@ struct RoutingSplitViewTests {
     @MainActor
     @Test func constructsWithDistinctRouteTypes() {
         let router = SplitRouter<SidebarRoute, DetailRoute, Never>()
-        _ = RoutingSplitView(router) { sidebar in
+        _ = SplitRoutingView(router) { sidebar in
             sidebar.start(.root)
         } detail: { detail in
             detail.start(.overview)
@@ -56,7 +56,7 @@ struct RoutingSplitViewTests {
     @MainActor
     @Test func constructsWithModalsRouter() {
         let router = SplitRouter<SidebarRoute, DetailRoute, ModalRoute>()
-        _ = RoutingSplitView(router) { sidebar in
+        _ = SplitRoutingView(router) { sidebar in
             sidebar.start(.root)
         } detail: { detail in
             detail.start(.overview)

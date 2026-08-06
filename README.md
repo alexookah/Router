@@ -19,7 +19,7 @@ Most SwiftUI routing libraries scope navigation to a single `NavigationStack`. R
 
 - **Type-safe routing** via `Routable` enums — each case maps to a view
 - **Push, sheet, and full-screen cover** navigation with one generic `Router<Destination>`
-- **NavigationSplitView support** — `RoutingSplitView` + `SplitRouter` give each column its own router, plus screen-level modals
+- **NavigationSplitView support** — `SplitRoutingView` + `SplitRouter` give each column its own router, plus screen-level modals
 - **Presentation without a stack** — `.routerPresentations(_:)` hosts router-driven modals on any container (split view, tab view, plain view)
 - **NavigationTarget** — route to `.current`, `.parent`, `.root`, or `.deepest` router in a hierarchy
 - **Cross-tab routing** — routers injected via `@Environment`, accessible from any child view
@@ -207,7 +207,7 @@ This enables cross-tab routing and modal stacking without passing routers around
 
 ## NavigationSplitView
 
-A split view has multiple independent navigation surfaces — the sidebar stack, the detail stack, and modals that belong to the whole screen. `SplitRouter` owns all three, and `RoutingSplitView` renders them, the same way `RoutingView` pairs with a single `Router`.
+A split view has multiple independent navigation surfaces — the sidebar stack, the detail stack, and modals that belong to the whole screen. `SplitRouter` owns all three, and `SplitRoutingView` renders them, the same way `RoutingView` pairs with a single `Router`.
 
 The three surfaces can share one route enum — any route can then go anywhere:
 
@@ -216,7 +216,7 @@ enum AppRoute: Routable { ... }
 
 let appRouter = SplitRouter<AppRoute, AppRoute, AppRoute>()
 
-RoutingSplitView(appRouter) { sidebar in
+SplitRoutingView(appRouter) { sidebar in
     sidebar.start(.folders)
 } detail: { detail in
     detail.start(.overview)
@@ -244,7 +244,7 @@ let appRouter = SplitRouter<SidebarRoute, DetailRoute, ModalRoute>()
 
 Use `Never` for the modals parameter when a screen has no screen-level modals: `SplitRouter<AppRoute, AppRoute, Never>`.
 
-`RoutingSplitView` also passes through `columnVisibility` and `preferredCompactColumn` bindings when you need them.
+`SplitRoutingView` also passes through `columnVisibility` and `preferredCompactColumn` bindings when you need them.
 
 > **Sidebar rows: prefer `List(selection:)`.** In compact width (iPhone, iPad Split View), `NavigationSplitView` only switches to the detail pane automatically when navigation comes from a `List` selection change. Plain `Button` rows swap state without moving the user, which reads as "nothing happened" on iPhone — if you use them, drive the `preferredCompactColumn` binding yourself. A clean pattern that keeps your coordinator in charge is a custom binding:
 >

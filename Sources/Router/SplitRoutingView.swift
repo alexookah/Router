@@ -11,13 +11,13 @@ import SwiftUI
 /// ```swift
 /// let appRouter = SplitRouter<SidebarRoute, DetailRoute, ModalRoute>()
 ///
-/// RoutingSplitView(appRouter, preferredCompactColumn: $preferredColumn) { sidebar in
+/// SplitRoutingView(appRouter, preferredCompactColumn: $preferredColumn) { sidebar in
 ///     sidebar.start(.root)
 /// } detail: { detail in
 ///     detail.start(.overview)
 /// }
 /// ```
-public struct RoutingSplitView<
+public struct SplitRoutingView<
     SidebarDestination: Routable,
     Sidebar: View,
     DetailDestination: Routable,

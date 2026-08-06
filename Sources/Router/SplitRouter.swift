@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The routing counterpart of a `NavigationSplitView`, used with
-/// ``RoutingSplitView`` — one object owning the navigation state of every
+/// ``SplitRoutingView`` — one object owning the navigation state of every
 /// surface a split screen has: the sidebar stack, the detail stack, and the
 /// screen-level modals.
 ///
@@ -34,7 +34,7 @@ public final class SplitRouter<
     public let detail = Router<DetailDestination>()
 
     /// Router for modals that belong to the screen rather than a column —
-    /// hosted above the split view by `RoutingSplitView`.
+    /// hosted above the split view by `SplitRoutingView`.
     public let modals = Router<ModalDestination>()
 
     public init() {}
