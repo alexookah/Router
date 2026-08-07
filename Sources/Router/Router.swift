@@ -159,9 +159,11 @@ public final class Router<Destination: Routable> {
     }
 
     /// Replaces the last `count` visible destinations with `route` — the top of
-    /// `path`, or the parent's presentation when `path` is empty. Substitution
-    /// shouldn't read as a transition, so this doesn't animate unless asked.
-    public func replace(last count: Int = 1, with route: Destination, animated: Bool = false) {
+    /// `path`, or the parent's presentation when `path` is empty.
+    ///
+    /// Pass `animated: false` for an instant swap — worth doing for a
+    /// presentation swap, which otherwise dismisses and re-presents.
+    public func replace(last count: Int = 1, with route: Destination, animated: Bool = true) {
         if animated {
             performReplace(last: count, with: route)
         } else {
@@ -170,11 +172,11 @@ public final class Router<Destination: Routable> {
     }
 
     private func performReplace(last count: Int, with route: Destination) {
-        guard !path.isEmpty else {
+        if path.isEmpty {
             replaceParentPresentation(with: route)
-            return
+        } else {
+            path = Array(path.dropLast(min(count, path.count))) + [route]
         }
-        path = Array(path.dropLast(min(count, path.count))) + [route]
     }
 
     private func replaceParentPresentation(with route: Destination) {
