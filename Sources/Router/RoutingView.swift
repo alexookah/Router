@@ -17,7 +17,7 @@ public struct RoutingView<Content: View, Destination: Routable>: View
     public var body: some View {
         NavigationStack(path: $router.path) {
             rootContent(router)
-                .if(!router.isRootRouter && router.dismissOptions.showDismissButton) {
+                .if(router.dismissOptions.showDismissButton) {
                     $0.toolbar {
                         DismissToolbar(
                             dismissOptions: router.dismissOptions,

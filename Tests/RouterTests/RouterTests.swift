@@ -136,19 +136,50 @@ struct StackManipulationTests {
     }
 
     @MainActor
-    @Test func replaceLastOnNonEmpty() {
+    @Test func replaceTopOfStack() {
         let router = Router<TestRoute>()
         router.push(route: .home)
         router.push(route: .settings)
-        router.replaceLast(with: .profile)
+        router.replace(with: .profile)
         #expect(router.path == [.home, .profile])
     }
 
     @MainActor
-    @Test func replaceLastOnEmpty() {
+    @Test func replaceSeveral() {
         let router = Router<TestRoute>()
-        router.replaceLast(with: .profile)
+        router.push(route: .home)
+        router.push(route: .settings)
+        router.push(route: .detail("1"))
+        router.replace(last: 2, with: .profile)
+        #expect(router.path == [.home, .profile])
+    }
+
+    @MainActor
+    @Test func replaceMoreThanAvailable() {
+        let router = Router<TestRoute>()
+        router.push(route: .home)
+        router.replace(last: 5, with: .profile)
         #expect(router.path == [.profile])
+    }
+
+    @MainActor
+    @Test func replaceOnEmptyRootIsNoOp() {
+        let router = Router<TestRoute>()
+        router.replace(with: .profile)
+        #expect(router.path.isEmpty)
+    }
+
+    @MainActor
+    @Test func replaceAtRootSwapsParentPresentation() {
+        let parent = Router<TestRoute>()
+        parent.presentSheet(route: .settings)
+        let child = parent.routerFor(routeType: .sheet, toShow: .settings)
+
+        child.replace(with: .profile)
+
+        #expect(parent.presentingSheet == .profile)
+        let replacement = parent.routerFor(routeType: .sheet, toShow: .profile)
+        #expect(replacement !== child)
     }
 
     @MainActor
@@ -177,6 +208,19 @@ struct SheetPresentationTests {
         router.presentSheet(route: .settings)
         #expect(router.presentingSheet == .settings)
         #expect(router.isPresenting)
+        #expect(!router.hasChild)
+    }
+
+    @MainActor
+    @Test func presentSheetStoresDismissOptionsForTheChild() {
+        let router = Router<TestRoute>()
+        router.presentSheet(
+            route: .settings,
+            dismissOptions: .init(showDismissButton: true, dismissButtonPosition: .right)
+        )
+        let child = router.routerFor(routeType: .sheet, toShow: .settings)
+        #expect(child.dismissOptions.showDismissButton)
+        #expect(child.dismissOptions.dismissButtonPosition == .right)
     }
 
     @MainActor
@@ -211,6 +255,7 @@ struct DismissalTests {
     @Test func dismissChild() {
         let router = Router<TestRoute>()
         router.presentSheet(route: .settings)
+        _ = router.routerFor(routeType: .sheet, toShow: .settings)
         #expect(router.hasChild)
         router.dismissChild()
         #expect(router.presentingSheet == nil)
@@ -222,7 +267,7 @@ struct DismissalTests {
     @Test func dismiss() {
         let parent = Router<TestRoute>()
         parent.presentSheet(route: .settings)
-        let child = parent.routerFor(routeType: .sheet)
+        let child = parent.routerFor(routeType: .sheet, toShow: .settings)
         child.dismiss()
         #expect(parent.presentingSheet == nil)
         #expect(!parent.hasChild)
@@ -232,7 +277,7 @@ struct DismissalTests {
     @Test func dismissOrPopToRootDismissesPresentedChild() {
         let parent = Router<TestRoute>()
         parent.presentSheet(route: .settings)
-        let child = parent.routerFor(routeType: .sheet)
+        let child = parent.routerFor(routeType: .sheet, toShow: .settings)
         child.dismissOrPopToRoot()
         #expect(parent.presentingSheet == nil)
     }
@@ -252,7 +297,7 @@ struct DismissalTests {
         root.push(route: .home)
         root.push(route: .settings)
         root.presentSheet(route: .profile)
-        let child = root.routerFor(routeType: .sheet)
+        let child = root.routerFor(routeType: .sheet, toShow: .profile)
         child.push(route: .detail("1"))
         child.dismissAllFromRoot()
         #expect(root.path.isEmpty)
@@ -268,31 +313,42 @@ struct ChildRouterTests {
     @MainActor
     @Test func routerForPushReturnsSelf() {
         let router = Router<TestRoute>()
-        let result = router.routerFor(routeType: .push)
+        let result = router.routerFor(routeType: .push, toShow: .home)
         #expect(result === router)
     }
 
     @MainActor
     @Test func routerForSheetCreatesChild() {
         let router = Router<TestRoute>()
-        let child = router.routerFor(routeType: .sheet)
+        let child = router.routerFor(routeType: .sheet, toShow: .settings)
         #expect(child !== router)
         #expect(router.hasChild)
         #expect(!child.isRootRouter)
     }
 
     @MainActor
-    @Test func routerForSheetReusesChild() {
+    @Test func routerForSheetReusesChildForSameDestination() {
         let router = Router<TestRoute>()
-        let child1 = router.routerFor(routeType: .sheet)
-        let child2 = router.routerFor(routeType: .sheet)
+        let child1 = router.routerFor(routeType: .sheet, toShow: .settings)
+        let child2 = router.routerFor(routeType: .sheet, toShow: .settings)
         #expect(child1 === child2)
+    }
+
+    @MainActor
+    @Test func routerForSheetRebuildsChildForDifferentDestination() {
+        let router = Router<TestRoute>()
+        let first = router.routerFor(routeType: .sheet, toShow: .settings)
+        first.push(route: .detail("stale"))
+
+        let second = router.routerFor(routeType: .sheet, toShow: .profile)
+        #expect(second !== first)
+        #expect(second.path.isEmpty)
     }
 
     @MainActor
     @Test func routerForFullScreenCoverCreatesChild() {
         let router = Router<TestRoute>()
-        let child = router.routerFor(routeType: .fullScreenCover)
+        let child = router.routerFor(routeType: .fullScreenCover, toShow: .profile)
         #expect(child !== router)
         #expect(router.hasChild)
     }
@@ -305,7 +361,7 @@ struct OnPresentationDismissedTests {
     @MainActor
     @Test func clearsChildWhenNotPresenting() {
         let router = Router<TestRoute>()
-        _ = router.routerFor(routeType: .sheet)
+        _ = router.routerFor(routeType: .sheet, toShow: .settings)
         #expect(router.hasChild)
         // Not presenting anything, so child should be cleared
         router.onPresentationDismissed()
@@ -316,6 +372,7 @@ struct OnPresentationDismissedTests {
     @Test func keepsChildWhenStillPresenting() {
         let router = Router<TestRoute>()
         router.presentSheet(route: .settings)
+        _ = router.routerFor(routeType: .sheet, toShow: .settings)
         #expect(router.hasChild)
         // Still presenting, so child should remain
         router.onPresentationDismissed()
@@ -331,7 +388,7 @@ struct NavigationTargetTests {
     @Test func pushWithRootTarget() {
         let root = Router<TestRoute>()
         root.presentSheet(route: .settings)
-        let child = root.routerFor(routeType: .sheet)
+        let child = root.routerFor(routeType: .sheet, toShow: .settings)
         child.push(route: .home, target: .root)
         #expect(root.path == [.home])
         #expect(child.path.isEmpty)
@@ -350,9 +407,24 @@ struct NavigationTargetTests {
     @Test func pushWithDeepestTarget() {
         let root = Router<TestRoute>()
         root.presentSheet(route: .settings)
-        let child = root.routerFor(routeType: .sheet)
+        let child = root.routerFor(routeType: .sheet, toShow: .settings)
         root.push(route: .home, target: .deepest)
         #expect(child.path == [.home])
+        #expect(root.path.isEmpty)
+    }
+
+    @MainActor
+    @Test func pushWithDeepestTargetWalksWholeChain() {
+        let root = Router<TestRoute>()
+        root.presentSheet(route: .settings)
+        let child = root.routerFor(routeType: .sheet, toShow: .settings)
+        child.presentSheet(route: .profile)
+        let grandchild = child.routerFor(routeType: .sheet, toShow: .profile)
+
+        root.push(route: .home, target: .deepest)
+
+        #expect(grandchild.path == [.home])
+        #expect(child.path.isEmpty)
         #expect(root.path.isEmpty)
     }
 
@@ -403,7 +475,7 @@ struct ShowDismissButtonOnPushTests {
     @MainActor
     @Test func falseForRootRouter() {
         let router = Router<TestRoute>()
-        router.dismissOptions = DismissButtonPresentationOptions(
+        router.presentationDismissOptions = DismissButtonPresentationOptions(
             showDismissButton: true,
             showDismissButtonOnPush: true
         )
@@ -414,7 +486,7 @@ struct ShowDismissButtonOnPushTests {
     @Test func trueWhenAllConditionsMet() {
         let parent = Router<TestRoute>()
         let child = Router<TestRoute>(parentRouter: parent)
-        child.dismissOptions = DismissButtonPresentationOptions(
+        parent.presentationDismissOptions = DismissButtonPresentationOptions(
             showDismissButton: true,
             showDismissButtonOnPush: true
         )
@@ -425,7 +497,7 @@ struct ShowDismissButtonOnPushTests {
     @Test func falseWhenShowDismissButtonIsFalse() {
         let parent = Router<TestRoute>()
         let child = Router<TestRoute>(parentRouter: parent)
-        child.dismissOptions = DismissButtonPresentationOptions(
+        parent.presentationDismissOptions = DismissButtonPresentationOptions(
             showDismissButton: false,
             showDismissButtonOnPush: true
         )
@@ -436,7 +508,7 @@ struct ShowDismissButtonOnPushTests {
     @Test func falseWhenShowDismissButtonOnPushIsFalse() {
         let parent = Router<TestRoute>()
         let child = Router<TestRoute>(parentRouter: parent)
-        child.dismissOptions = DismissButtonPresentationOptions(
+        parent.presentationDismissOptions = DismissButtonPresentationOptions(
             showDismissButton: true,
             showDismissButtonOnPush: false
         )

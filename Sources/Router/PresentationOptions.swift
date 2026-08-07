@@ -32,11 +32,13 @@ public struct DismissButtonPresentationOptions: Equatable {
         self.showDismissButtonOnPush = showDismissButtonOnPush
     }
 
-    public static var sheetDismissOptions: DismissButtonPresentationOptions {
-        .init(showDismissButton: false)
+    /// No dismiss button — the default for sheets, which swipe away.
+    public static var hidden: DismissButtonPresentationOptions {
+        .init(showDismissButton: false, showDismissButtonOnPush: false)
     }
 
-    public static var fullScreenDismissOptions: DismissButtonPresentationOptions {
+    /// A dismiss button on the leading edge — the default for full-screen covers.
+    public static var visible: DismissButtonPresentationOptions {
         .init()
     }
 }

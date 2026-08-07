@@ -39,7 +39,7 @@ struct RouterPresentationsModifier<Destination: Routable>: ViewModifier {
         if route.providesOwnNavigation {
             route.destination()
         } else {
-            RoutingView(router.routerFor(routeType: routeType)) { childRouter in
+            RoutingView(router.routerFor(routeType: routeType, toShow: route)) { childRouter in
                 childRouter.start(route)
             }
         }

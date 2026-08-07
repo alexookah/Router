@@ -127,7 +127,7 @@ router.presentSheet(route: .settings)
 router.presentSheet(
     route: .settings,
     options: .init(detents: [.medium, .large], dragIndicator: .visible),
-    dismissOptions: .init(showDismissButton: true)
+    dismissOptions: .visible
 )
 ```
 
@@ -164,7 +164,8 @@ router.dismissAllFromRoot()  // dismiss entire hierarchy
 
 ```swift
 router.replaceStack(with: [.home, .detail("1"), .detail("2")])
-router.replaceLast(with: .detail("3"))
+router.replace(with: .detail("3"))          // swap the top
+router.replace(last: 2, with: .detail("3")) // collapse the last two
 router.lastPathIs(.detail("3")) // true
 ```
 
@@ -360,11 +361,16 @@ TabView(selection: $selectedTab) {
 
 ## Dismiss Button Options
 
-Control the dismiss button on modals:
+The presenter chooses the dismiss button for the modal it shows, so pass the
+options when presenting — a router's own `dismissOptions` is read-only.
+`.visible` (a leading button) and `.hidden` (none) cover the common cases:
 
 ```swift
-// Full-screen cover with dismiss button on the left (default)
+// Full-screen cover with dismiss button on the left (.visible is the default)
 router.present(route: .settings)
+
+// Sheet with a dismiss button (sheets default to .hidden — they swipe away)
+router.presentSheet(route: .settings, dismissOptions: .visible)
 
 // Dismiss button on the right
 router.present(
@@ -379,12 +385,6 @@ router.present(
         showDismissButton: true,
         showDismissButtonOnPush: true
     )
-)
-
-// Sheet with dismiss button (sheets hide it by default since they have swipe-to-dismiss)
-router.presentSheet(
-    route: .settings,
-    dismissOptions: .init(showDismissButton: true)
 )
 ```
 

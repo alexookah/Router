@@ -69,7 +69,7 @@ public final class SplitRouter<
     public func presentModal(
         _ route: ModalDestination,
         options: SheetPresentationOptions = .init(),
-        dismissOptions: DismissButtonPresentationOptions = .sheetDismissOptions
+        dismissOptions: DismissButtonPresentationOptions = .hidden
     ) {
         modals.presentSheet(route: route, options: options, dismissOptions: dismissOptions)
     }

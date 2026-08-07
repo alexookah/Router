@@ -18,8 +18,13 @@ public final class Router<Destination: Routable> {
     /// The route currently presented as a full-screen cover, if any.
     public var presentingFullScreenCover: Destination?
 
-    /// Dismiss button configuration for this router's presented views.
-    public var dismissOptions: DismissButtonPresentationOptions = .init()
+    /// Dismiss configuration for the modal this router is presenting.
+    public var presentationDismissOptions: DismissButtonPresentationOptions?
+
+    /// Dismiss configuration for this router's own content, set by its presenter.
+    public var dismissOptions: DismissButtonPresentationOptions {
+        parentRouter?.presentationDismissOptions ?? .hidden
+    }
 
     // MARK: - Private Hierarchy
 
@@ -27,9 +32,10 @@ public final class Router<Destination: Routable> {
     @ObservationIgnored
     private weak var parentRouter: Router<Destination>?
 
-    /// Reference to the child router created for sheet/fullScreenCover presentations.
+    /// The child router created for a sheet/fullScreenCover, paired with the
+    /// route it was created for.
     @ObservationIgnored
-    private var childRouter: Router<Destination>?
+    private var child: (router: Router<Destination>, destination: Destination)?
 
     // MARK: - Computed Properties
 
@@ -57,12 +63,12 @@ public final class Router<Destination: Routable> {
 
     /// Whether this router has an active child router.
     public var hasChild: Bool {
-        childRouter != nil
+        child != nil
     }
 
     /// Whether pushed views should show a dismiss button.
     public var showDismissButtonOnPush: Bool {
-        !isRootRouter && dismissOptions.showDismissButton && dismissOptions.showDismissButtonOnPush
+        dismissOptions.showDismissButton && dismissOptions.showDismissButtonOnPush
     }
 
     // MARK: - Init
@@ -81,18 +87,19 @@ public final class Router<Destination: Routable> {
     }
 
     /// Returns the appropriate router for a navigation type.
-    /// `.push` returns self; `.sheet`/`.fullScreenCover` returns or creates a child.
-    public func routerFor(routeType: NavigationType) -> Router {
+    /// `.push` returns self; `.sheet`/`.fullScreenCover` reuses the child only when
+    /// it already shows `target` (a re-render), otherwise creates a fresh one.
+    public func routerFor(routeType: NavigationType, toShow target: Destination) -> Router {
         switch routeType {
         case .push:
             return self
         case .sheet, .fullScreenCover:
-            if let childRouter {
-                return childRouter
+            if let child, child.destination == target {
+                return child.router
             }
-            let child = Router(parentRouter: self)
-            childRouter = child
-            return child
+            let router = Router(parentRouter: self)
+            child = (router, target)
+            return router
         }
     }
 
@@ -109,13 +116,12 @@ public final class Router<Destination: Routable> {
     /// macOS has no full-screen cover equivalent; use `presentSheet(...)` instead.
     public func present(
         route: Destination,
-        dismissOptions: DismissButtonPresentationOptions = .fullScreenDismissOptions,
+        dismissOptions: DismissButtonPresentationOptions = .visible,
         target: NavigationTarget = .current
     ) {
         let router = targetRouter(for: target)
         router.presentingSheet = nil
-        let child = router.routerFor(routeType: .fullScreenCover)
-        child.dismissOptions = dismissOptions
+        router.presentationDismissOptions = dismissOptions
         router.presentingFullScreenCover = route
     }
     #endif
@@ -124,13 +130,12 @@ public final class Router<Destination: Routable> {
     public func presentSheet(
         route: Destination,
         options: SheetPresentationOptions = .init(),
-        dismissOptions: DismissButtonPresentationOptions = .sheetDismissOptions,
+        dismissOptions: DismissButtonPresentationOptions = .hidden,
         target: NavigationTarget = .current
     ) {
         let router = targetRouter(for: target)
         router.presentingFullScreenCover = nil
-        let child = router.routerFor(routeType: .sheet)
-        child.dismissOptions = dismissOptions
+        router.presentationDismissOptions = dismissOptions
         router.sheetPresentationOptions = options
         router.presentingSheet = route
     }
@@ -153,12 +158,37 @@ public final class Router<Destination: Routable> {
         path = routes
     }
 
-    /// Replaces the last route in the stack, or appends if empty.
-    public func replaceLast(with route: Destination) {
-        if path.isEmpty {
-            path.append(route)
+    /// Replaces the last `count` visible destinations with `route` — the top of
+    /// `path`, or the parent's presentation when `path` is empty. Substitution
+    /// shouldn't read as a transition, so this doesn't animate unless asked.
+    public func replace(last count: Int = 1, with route: Destination, animated: Bool = false) {
+        if animated {
+            performReplace(last: count, with: route)
         } else {
-            path[path.count - 1] = route
+            withoutAnimation { performReplace(last: count, with: route) }
+        }
+    }
+
+    private func performReplace(last count: Int, with route: Destination) {
+        guard !path.isEmpty else {
+            replaceParentPresentation(with: route)
+            return
+        }
+        path = Array(path.dropLast(min(count, path.count))) + [route]
+    }
+
+    private func replaceParentPresentation(with route: Destination) {
+        guard let parentRouter else { return }
+        if parentRouter.presentingSheet != nil {
+            parentRouter.presentSheet(
+                route: route,
+                options: parentRouter.sheetPresentationOptions,
+                dismissOptions: dismissOptions
+            )
+        } else if parentRouter.presentingFullScreenCover != nil {
+            #if os(iOS)
+            parentRouter.present(route: route, dismissOptions: dismissOptions)
+            #endif
         }
     }
 
@@ -173,14 +203,14 @@ public final class Router<Destination: Routable> {
     public func dismissChild() {
         presentingSheet = nil
         presentingFullScreenCover = nil
-        childRouter = nil
+        child = nil
     }
 
     /// Called by `RoutingView` when a modal is dismissed by the system (e.g. swipe-down).
     /// Clears the child router only if no new presentation is active.
     public func onPresentationDismissed() {
         if !isPresenting {
-            childRouter = nil
+            child = nil
         }
     }
 
@@ -212,7 +242,7 @@ public final class Router<Destination: Routable> {
         switch target {
         case .current: nearestActiveRouter
         case .parent: parentRouter ?? self
-        case .child: childRouter ?? self
+        case .child: child?.router ?? self
         case .root: rootRouter
         case .deepest: deepestChildRouter ?? self
         }
@@ -220,25 +250,18 @@ public final class Router<Destination: Routable> {
 
     /// Walks up the parent chain to find the first router that isn't being dismissed.
     private var nearestActiveRouter: Router {
-        var current = self
-        while current.isDismissing, let parent = current.parentRouter {
-            current = parent
-        }
-        return current
+        guard isDismissing, let parentRouter else { return self }
+        return parentRouter.nearestActiveRouter
     }
 
     /// The deepest (leaf) child router in the hierarchy, if any.
     private var deepestChildRouter: Router? {
-        guard let child = childRouter else { return nil }
-        return child.deepestChildRouter ?? child
+        guard let router = child?.router else { return nil }
+        return router.deepestChildRouter ?? router
     }
 
     /// The top-most parent router in the hierarchy.
     private var rootRouter: Router {
-        var current = self
-        while let parent = current.parentRouter {
-            current = parent
-        }
-        return current
+        parentRouter?.rootRouter ?? self
     }
 }
