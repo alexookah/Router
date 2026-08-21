@@ -159,8 +159,12 @@ struct SplitModalView: View {
     var body: some View {
         List {
             LabeledContent("Hosted by", value: hostedBy)
-            Button("replace — swap this modal's content in place") {
-                router.replace(with: .split(.filters))
+            Menu("replace — swap this modal's content in place") {
+                ForEach(Self.modals, id: \.name) { modal in
+                    Button(modal.name == title ? "\(modal.name) — current, no-op" : modal.name) {
+                        router.replace(with: .split(modal.route))
+                    }
+                }
             }
             Button("Dismiss") { router.dismiss() }
             Button("popAllToRoot — clears every surface") {
