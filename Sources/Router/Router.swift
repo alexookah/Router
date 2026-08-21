@@ -1,34 +1,24 @@
 import SwiftUI
 
+/// Not `final` so ``SplitRouter`` can subclass it; `public` (not `open`)
+/// still prevents subclassing outside the package.
 @MainActor
 @Observable
-public final class Router<Destination: Routable> {
+public class Router<Destination: Routable> {
 
     // MARK: - Public State
 
-    /// The navigation stack used to programmatically control push navigation.
     public var path: [Destination] = []
 
-    /// The route currently presented as a sheet, if any.
-    public var presentingSheet: Destination?
+    /// Assigning starts a new presentation; `replace(with:)` swaps the
+    /// current one's content while keeping its identity.
+    public var presentingSheet: PresentedRoute<Destination>?
 
-    /// Options applied to the active sheet presentation.
-    public var sheetPresentationOptions: SheetPresentationOptions = .init()
-
-    /// The route currently presented as a full-screen cover, if any.
-    public var presentingFullScreenCover: Destination?
-
-    /// Dismiss configuration for the modal this router is presenting.
-    public var presentationDismissOptions: DismissButtonPresentationOptions?
-
-    /// Dismiss configuration for this router's own content, set by its presenter.
-    public var dismissOptions: DismissButtonPresentationOptions {
-        parentRouter?.presentationDismissOptions ?? .hidden
-    }
+    /// Same semantics as ``presentingSheet``; `sheetOptions` is unused here.
+    public var presentingFullScreenCover: PresentedRoute<Destination>?
 
     // MARK: - Private Hierarchy
 
-    /// Reference to the parent router so this router can be dismissed.
     @ObservationIgnored
     private weak var parentRouter: Router<Destination>?
 
@@ -39,7 +29,6 @@ public final class Router<Destination: Routable> {
 
     // MARK: - Computed Properties
 
-    /// Whether a sheet or full-screen cover is currently presented.
     public var isPresenting: Bool {
         presentingSheet != nil || presentingFullScreenCover != nil
     }
@@ -51,44 +40,34 @@ public final class Router<Destination: Routable> {
         return !parentRouter.isPresenting || parentRouter.isDismissing
     }
 
-    /// Whether this is the root router (has no parent).
     public var isRootRouter: Bool {
         parentRouter == nil
     }
 
-    /// Whether this is the root router with an empty path and no active modals.
+    /// Root router, empty path, no active modals.
     public var isFullyAtRoot: Bool {
         isRootRouter && path.isEmpty && !isPresenting
     }
 
-    /// Whether this router has an active child router.
     public var hasChild: Bool {
         child != nil
     }
 
-    /// Whether pushed views should show a dismiss button.
-    public var showDismissButtonOnPush: Bool {
-        dismissOptions.showDismissButton && dismissOptions.showDismissButtonOnPush
-    }
-
     // MARK: - Init
 
-    /// Creates a new router with an optional parent.
     public init(parentRouter: Router<Destination>? = nil) {
         self.parentRouter = parentRouter
     }
 
     // MARK: - View Handling
 
-    /// Returns the initial view for a `RoutingView`.
-    /// Safe to call multiple times with the same route (SwiftUI may re-render).
+    /// Safe to call repeatedly with the same route (SwiftUI may re-render).
     public func start(_ route: Destination) -> Destination.ViewType {
         route.destination()
     }
 
-    /// Returns the appropriate router for a navigation type.
-    /// `.push` returns self; `.sheet`/`.fullScreenCover` reuses the child only when
-    /// it already shows `target` (a re-render), otherwise creates a fresh one.
+    /// `.push` returns self; `.sheet`/`.fullScreenCover` reuses the child only
+    /// when it already shows `target` (a re-render), otherwise creates a fresh one.
     public func routerFor(routeType: NavigationType, toShow target: Destination) -> Router {
         switch routeType {
         case .push:
@@ -105,73 +84,65 @@ public final class Router<Destination: Routable> {
 
     // MARK: - Navigation
 
-    /// Pushes a route onto the navigation stack of the targeted router.
     public func push(route: Destination, target: NavigationTarget = .current) {
         let router = targetRouter(for: target)
         router.path.append(route)
     }
 
     #if os(iOS)
-    /// Presents a route as a full-screen cover. iOS only —
-    /// macOS has no full-screen cover equivalent; use `presentSheet(...)` instead.
+    /// iOS only — macOS has no full-screen cover; use `presentSheet(...)`.
+    ///
+    /// Pass `navigation: .own` when the destination builds its own
+    /// `NavigationStack` / `NavigationSplitView`.
     public func present(
         route: Destination,
-        dismissOptions: DismissButtonPresentationOptions = .visible,
+        navigation: PresentedNavigation = .stack(dismiss: .visible),
         target: NavigationTarget = .current
     ) {
         let router = targetRouter(for: target)
         router.presentingSheet = nil
-        router.presentationDismissOptions = dismissOptions
-        router.presentingFullScreenCover = route
+        router.presentingFullScreenCover = PresentedRoute(route, navigation: navigation)
     }
     #endif
 
-    /// Presents a route as a sheet with optional detents and dismiss button.
+    /// Pass `navigation: .own` when the destination builds its own
+    /// `NavigationStack` / `NavigationSplitView`.
     public func presentSheet(
         route: Destination,
+        navigation: PresentedNavigation = .stack(dismiss: .hidden),
         options: SheetPresentationOptions = .init(),
-        dismissOptions: DismissButtonPresentationOptions = .hidden,
         target: NavigationTarget = .current
     ) {
         let router = targetRouter(for: target)
         router.presentingFullScreenCover = nil
-        router.presentationDismissOptions = dismissOptions
-        router.sheetPresentationOptions = options
-        router.presentingSheet = route
+        router.presentingSheet = PresentedRoute(
+            route,
+            navigation: navigation,
+            sheetOptions: options
+        )
     }
 
-    /// Removes one or more views from the navigation stack.
-    /// - Parameter count: The number of views to remove. Defaults to 1.
     public func pop(last count: Int = 1) {
         guard !path.isEmpty else { return }
         let removeCount = min(count, path.count)
         path.removeLast(removeCount)
     }
 
-    /// Removes all views from the navigation stack.
     public func popToRoot() {
         path.removeAll()
     }
 
-    /// Replaces the entire navigation stack with a new set of routes.
     public func replaceStack(with routes: [Destination]) {
         path = routes
     }
 
-    /// Replaces the last `count` visible destinations with `route` — the top of
-    /// `path`, or the parent's presentation when `path` is empty.
+    /// Replaces the last `count` visible destinations with `route` — the top
+    /// of `path`, or the parent's presentation when `path` is empty.
     ///
-    /// Pass `animated: false` for an instant swap — worth doing for a
-    /// presentation swap, which otherwise dismisses and re-presents.
-    public func replace(last count: Int = 1, with route: Destination, animated: Bool = true) {
-        if animated {
-            performReplace(last: count, with: route)
-        } else {
-            withoutAnimation { performReplace(last: count, with: route) }
-        }
-    }
-
-    private func performReplace(last count: Int, with route: Destination) {
+    /// The replacement is in place: a same-depth path replace re-renders the
+    /// screen, and a presented modal keeps its identity so only its view
+    /// changes. For a dismiss-and-re-present, call `presentSheet`/`present`.
+    public func replace(last count: Int = 1, with route: Destination) {
         if path.isEmpty {
             replaceParentPresentation(with: route)
         } else {
@@ -179,37 +150,31 @@ public final class Router<Destination: Routable> {
         }
     }
 
+    /// Swaps the route while keeping the presentation's id, so `sheet(item:)`
+    /// replaces the view instead of dismissing and re-presenting.
     private func replaceParentPresentation(with route: Destination) {
         guard let parentRouter else { return }
-        if parentRouter.presentingSheet != nil {
-            parentRouter.presentSheet(
-                route: route,
-                options: parentRouter.sheetPresentationOptions,
-                dismissOptions: dismissOptions
-            )
-        } else if parentRouter.presentingFullScreenCover != nil {
-            #if os(iOS)
-            parentRouter.present(route: route, dismissOptions: dismissOptions)
-            #endif
+        if let sheet = parentRouter.presentingSheet {
+            parentRouter.presentingSheet = sheet.replacing(route)
+        } else if let cover = parentRouter.presentingFullScreenCover {
+            parentRouter.presentingFullScreenCover = cover.replacing(route)
         }
     }
 
-    /// Returns `true` if the last route in the stack matches the given route.
     public func lastPathIs(_ route: Destination) -> Bool {
         path.last == route
     }
 
     // MARK: - Dismissal
 
-    /// Dismisses the current modal and clears the child router.
     public func dismissChild() {
         presentingSheet = nil
         presentingFullScreenCover = nil
         child = nil
     }
 
-    /// Called by `RoutingView` when a modal is dismissed by the system (e.g. swipe-down).
-    /// Clears the child router only if no new presentation is active.
+    /// Called by `RoutingView` when the system dismisses a modal (e.g.
+    /// swipe-down). Clears the child only if no new presentation is active.
     public func onPresentationDismissed() {
         if !isPresenting {
             child = nil
@@ -230,7 +195,6 @@ public final class Router<Destination: Routable> {
         }
     }
 
-    /// Dismisses the entire hierarchy from the root router.
     public func dismissAllFromRoot() {
         let root = rootRouter
         root.dismissChild()
@@ -239,7 +203,6 @@ public final class Router<Destination: Routable> {
 
     // MARK: - Private Hierarchy Helpers
 
-    /// Resolves the appropriate router for a given target.
     private func targetRouter(for target: NavigationTarget) -> Router {
         switch target {
         case .current: nearestActiveRouter
@@ -250,19 +213,17 @@ public final class Router<Destination: Routable> {
         }
     }
 
-    /// Walks up the parent chain to find the first router that isn't being dismissed.
+    /// Walks up the parent chain to the first router that isn't being dismissed.
     private var nearestActiveRouter: Router {
         guard isDismissing, let parentRouter else { return self }
         return parentRouter.nearestActiveRouter
     }
 
-    /// The deepest (leaf) child router in the hierarchy, if any.
     private var deepestChildRouter: Router? {
         guard let router = child?.router else { return nil }
         return router.deepestChildRouter ?? router
     }
 
-    /// The top-most parent router in the hierarchy.
     private var rootRouter: Router {
         parentRouter?.rootRouter ?? self
     }

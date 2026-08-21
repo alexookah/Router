@@ -15,6 +15,7 @@ enum AppRoute: Routable {
     case profile(ProfileRoute)
     case stacking(StackingRoute)
     case deepLinks(DeepLinksRoute)
+    case split(SplitRoute)
 
     func destination() -> some View {
         switch self {
@@ -22,11 +23,13 @@ enum AppRoute: Routable {
         case let .profile(route): route.destination()
         case let .stacking(route): route.destination()
         case let .deepLinks(route): route.destination()
+        case let .split(route): route.destination()
         }
     }
 }
 
 typealias AppRouter = Router<AppRoute>
+typealias SplitAppRouter = SplitRouter<AppRoute>
 
 // MARK: - Per-Feature Routes
 
@@ -74,6 +77,34 @@ enum DeepLinksRoute: Routable {
     func destination() -> some View {
         switch self {
         case .deepLinks: DeepLinksView()
+        }
+    }
+}
+
+enum SplitRoute: Routable {
+    case folders
+    case folder(Int)
+    case overview
+    case article(Int)
+    case filters
+    case share
+    case settings
+    case editor
+
+    func destination() -> some View {
+        switch self {
+        case .folders: SplitFoldersView()
+        case let .folder(index): SplitFolderView(index: index)
+        case .overview: SplitOverviewView()
+        case let .article(index): SplitArticleView(index: index)
+        case .filters:
+            SplitModalView(title: "Filters", hostedBy: "the sidebar column")
+        case .share:
+            SplitModalView(title: "Share", hostedBy: "the detail column")
+        case .settings:
+            SplitModalView(title: "Settings", hostedBy: "the split router")
+        case .editor:
+            SplitModalView(title: "Editor", hostedBy: "the split router (cover)")
         }
     }
 }

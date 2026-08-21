@@ -14,6 +14,8 @@ struct DeepLinksView: View {
         ("Home", "Switches to Home tab", "routerdemo://home"),
         ("Home Detail", "Switches to Home tab, pushes Detail \"42\"", "routerdemo://home/42"),
         ("Edit Profile", "Switches to Profile tab, opens full-screen editor", "routerdemo://profile/edit"),
+        ("Split Article", "Switches to Split tab, pushes Article 7 in the detail column", "routerdemo://split/article/7"),
+        ("Split Folder", "Switches to Split tab, drills Folder 2 in the sidebar", "routerdemo://split/folder/2"),
     ]
 
     var body: some View {

@@ -1,99 +1,68 @@
 import SwiftUI
 
-/// A router-driven `NavigationSplitView`, paired with a ``SplitRouter`` the
-/// same way `RoutingView` pairs with a single `Router`.
+/// A router-driven `NavigationSplitView`. The detail column is driven by the
+/// split router itself, the sidebar by its ``SplitRouter/sidebar``.
 ///
-/// Each column is wrapped in its own `RoutingView`, giving it an independent
-/// router-driven `NavigationStack` and the ability to present its own
-/// modals. The split router's `modals` router is hosted above the whole
-/// split view for screen-level presentations.
-///
-/// ```swift
-/// let appRouter = SplitRouter<SidebarRoute, DetailRoute, ModalRoute>()
-///
-/// SplitRoutingView(appRouter, preferredCompactColumn: $preferredColumn) { sidebar in
-///     sidebar.start(.root)
-/// } detail: { detail in
-///     detail.start(.overview)
-/// }
-/// ```
-public struct SplitRoutingView<
-    SidebarDestination: Routable,
-    Sidebar: View,
-    DetailDestination: Routable,
-    Detail: View,
-    ModalDestination: Routable
->: View where SidebarDestination.ViewType == Sidebar, DetailDestination.ViewType == Detail {
+/// At compact width SwiftUI collapses the columns into a single stack —
+/// `sidebar root → detail root → detail path…` — so a cross-column `push`
+/// lands two levels deep. Branch on ``SplitRouter/isCollapsed`` when a push
+/// should read as one level.
+public struct SplitRoutingView<Destination: Routable>: View {
 
-    private let router: SplitRouter<SidebarDestination, DetailDestination, ModalDestination>
+    @Bindable private var router: SplitRouter<Destination>
 
-    private let sidebarContent: (Router<SidebarDestination>) -> Sidebar
-    private let detailContent: (Router<DetailDestination>) -> Detail
+    private let sidebarRoute: Destination
+    private let detailRoute: Destination
 
-    /// Optional caller-supplied bindings. When absent, the corresponding
-    /// `NavigationSplitView` initializer parameter is omitted entirely — see
-    /// the note on `splitView`.
-    private let columnVisibility: Binding<NavigationSplitViewVisibility>?
-    private let preferredCompactColumn: Binding<NavigationSplitViewColumn>?
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
 
     public init(
-        _ router: SplitRouter<SidebarDestination, DetailDestination, ModalDestination>,
-        columnVisibility: Binding<NavigationSplitViewVisibility>? = nil,
-        preferredCompactColumn: Binding<NavigationSplitViewColumn>? = nil,
-        @ViewBuilder sidebar: @escaping (Router<SidebarDestination>) -> Sidebar,
-        @ViewBuilder detail: @escaping (Router<DetailDestination>) -> Detail
+        _ router: SplitRouter<Destination>,
+        sidebar: Destination,
+        detail: Destination
     ) {
         self.router = router
-        self.columnVisibility = columnVisibility
-        self.preferredCompactColumn = preferredCompactColumn
-        self.sidebarContent = sidebar
-        self.detailContent = detail
+        self.sidebarRoute = sidebar
+        self.detailRoute = detail
     }
 
     public var body: some View {
         splitView
-            .routerPresentations(router.modals)
             .environment(router)
+            .onChange(of: isCompactWidth, initial: true) { _, compact in
+                router.isCollapsed = compact
+            }
     }
 
-    @ViewBuilder
+    /// Unavailable on macOS, where a `NavigationSplitView` never collapses.
+    private var isCompactWidth: Bool {
+        #if os(iOS)
+        horizontalSizeClass == .compact
+        #else
+        false
+        #endif
+    }
+
     private var splitView: some View {
-        switch (columnVisibility, preferredCompactColumn) {
-        case let (visibility?, compactColumn?):
-            NavigationSplitView(
-                columnVisibility: visibility,
-                preferredCompactColumn: compactColumn
-            ) {
-                sidebarColumn
-            } detail: {
-                detailColumn
-            }
-        case let (visibility?, nil):
-            NavigationSplitView(columnVisibility: visibility) {
-                sidebarColumn
-            } detail: {
-                detailColumn
-            }
-        case let (nil, compactColumn?):
-            NavigationSplitView(preferredCompactColumn: compactColumn) {
-                sidebarColumn
-            } detail: {
-                detailColumn
-            }
-        case (nil, nil):
-            NavigationSplitView {
-                sidebarColumn
-            } detail: {
-                detailColumn
-            }
+        NavigationSplitView(
+            columnVisibility: $router.columnVisibility,
+            preferredCompactColumn: $router.preferredCompactColumn
+        ) {
+            sidebarColumn
+        } detail: {
+            detailColumn
         }
     }
 
     private var sidebarColumn: some View {
-        RoutingView(router.sidebar, content: sidebarContent)
+        RoutingView(router.sidebar) { $0.start(sidebarRoute) }
     }
 
+    /// The split router *is* this column's router, so it hosts both this stack
+    /// and the screen's modals.
     private var detailColumn: some View {
-        RoutingView(router.detail, content: detailContent)
+        RoutingView(router) { $0.start(detailRoute) }
     }
 }

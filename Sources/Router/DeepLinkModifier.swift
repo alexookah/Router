@@ -19,12 +19,8 @@ struct DeepLinkModifier: ViewModifier {
 public extension View {
     /// Handles deep links from both external sources and internal `openURL` calls.
     ///
-    /// This modifier:
-    /// 1. Listens for URLs delivered by the system (`.onOpenURL`)
-    /// 2. Overrides the `openURL` environment so child views can trigger
-    ///    deep links by calling `openURL(url)`
-    ///
-    /// Return `true` if the URL was handled, `false` to pass it to the system (e.g. open in Safari).
+    /// Return `true` if the URL was handled, `false` to pass it to the system
+    /// (e.g. open in Safari).
     ///
     /// ```swift
     /// TabView(selection: $selectedTab) { ... }

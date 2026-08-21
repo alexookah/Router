@@ -19,8 +19,8 @@ Most SwiftUI routing libraries scope navigation to a single `NavigationStack`. R
 
 - **Type-safe routing** via `Routable` enums — each case maps to a view
 - **Push, sheet, and full-screen cover** navigation with one generic `Router<Destination>`
-- **NavigationSplitView support** — `SplitRoutingView` + `SplitRouter` give each column its own router, plus screen-level modals
-- **Presentation without a stack** — `.routerPresentations(_:)` hosts router-driven modals on any container (split view, tab view, plain view)
+- **NavigationSplitView support** — `SplitRouter` is a `Router` driving the detail column, with `sidebar` a full `Router` for the other, so both columns take the same verbs. It owns the split view's layout state and reports `isCollapsed` for compact width
+- **Presentation without a stack** — `.routerPresentations(_:)` hosts router-driven modals on any view that already has navigation above it
 - **NavigationTarget** — route to `.current`, `.parent`, `.root`, or `.deepest` router in a hierarchy
 - **Cross-tab routing** — routers injected via `@Environment`, accessible from any child view
 - **Sheet presentation options** — detents, drag indicator
@@ -126,8 +126,8 @@ router.push(route: .detail("123"), target: .root) // push on root router
 router.presentSheet(route: .settings)
 router.presentSheet(
     route: .settings,
-    options: .init(detents: [.medium, .large], dragIndicator: .visible),
-    dismissOptions: .visible
+    navigation: .stack(dismiss: .visible),
+    options: .init(detents: [.medium, .large], dragIndicator: .visible)
 )
 ```
 
@@ -139,12 +139,15 @@ router.presentSheet(
 router.present(route: .settings)
 router.present(
     route: .settings,
-    dismissOptions: .init(
+    navigation: .stack(dismiss: .init(
         showDismissButton: true,
         dismissButtonPosition: .left,
         showDismissButtonOnPush: true  // show X on views pushed within the modal
-    )
+    ))
 )
+
+// A destination that builds its own NavigationStack / NavigationSplitView
+router.present(route: .workspace, navigation: .own)
 ```
 
 ### Pop & Dismiss
@@ -208,44 +211,95 @@ This enables cross-tab routing and modal stacking without passing routers around
 
 ## NavigationSplitView
 
-A split view has multiple independent navigation surfaces — the sidebar stack, the detail stack, and modals that belong to the whole screen. `SplitRouter` owns all three, and `SplitRoutingView` renders them, the same way `RoutingView` pairs with a single `Router`.
-
-The three surfaces can share one route enum — any route can then go anywhere:
+A `SplitRouter` *is* a `Router` — the one driving the detail column — that gained a sidebar:
 
 ```swift
 enum AppRoute: Routable { ... }
 
-let appRouter = SplitRouter<AppRoute, AppRoute, AppRoute>()
+let appRouter = SplitRouter<AppRoute>()
 
-SplitRoutingView(appRouter) { sidebar in
-    sidebar.start(.folders)
-} detail: { detail in
-    detail.start(.overview)
+SplitRoutingView(appRouter, sidebar: .folders, detail: .overview)
+```
+
+So every surface uses `Router`'s own API, with no extra names to learn:
+
+```swift
+appRouter.push(route: .article(id))            // detail column
+appRouter.presentSheet(route: .settings)       // modal over the screen
+appRouter.present(route: .editor)              // full-screen cover (iOS)
+appRouter.dismissChild()
+appRouter.path                                 // the detail stack
+
+appRouter.sidebar.push(route: .folder(id))     // sidebar column
+appRouter.sidebar.presentSheet(route: .filters)
+appRouter.sidebar.replaceStack(with: [.folder(a), .folder(b)])
+appRouter.sidebar.pop()                        // …pop (clamped)
+
+appRouter.popAllToRoot()                       // both columns at once
+```
+
+Both columns are full routers and take the same verbs — there is one navigation vocabulary, `Router`'s. `sidebar` is the sidebar's; `detail` names the split router itself, so `appRouter.detail.push(route:)` is `appRouter.push(route:)`. `sidebarPath` remains as plain array access to `sidebar.path`, for reading and binding.
+
+A view *inside* a column can also reach its own column's router without knowing which one it is — its `RoutingView` puts it in the environment:
+
+```swift
+struct FoldersView: View {
+    @Environment(Router<AppRoute>.self) private var columnRouter
+
+    var body: some View {
+        Button("Filters") { columnRouter.presentSheet(route: .filters) }
+    }
 }
 ```
 
-Navigate through the facade or the underlying routers directly:
+Both columns share one `Destination`, so any route can go to either.
 
-```swift
-appRouter.pushSidebar(.folder(id))     // sidebar column stack
-appRouter.pushDetail(.article(id))     // detail column stack
-appRouter.presentModal(.settings)      // sheet/cover above the whole split view
-appRouter.detail.presentSheet(route: .filters)  // column-local modal
+A column's view *is* its route's `ViewType`, so a route value is all a root can be — there's one initializer, no closure form. Pick a root conditionally with an expression (`sidebar: hasFolders ? .folders : .empty`), and let the route's own destination read live state for anything dynamic.
 
-appRouter.sidebarPath                  // direct path access
-appRouter.detailPath
-appRouter.popAllToRoot()
+### Compact width: the columns become one stack
+
+At compact width SwiftUI collapses the split view into a *single* stack, formed by concatenating the columns:
+
+```
+sidebar root  →  detail root  →  detail path…
 ```
 
-The type parameters are independent, so you can also give each surface its own enum when you want the compiler to reject cross-surface navigation (e.g. a detail-only route can never be pushed onto the sidebar):
+Two consequences worth knowing before you ship an iPhone build:
+
+- **The detail root is a real screen.** `appRouter.push(route:)` from the sidebar lands *two* levels deep, so going back reaches the detail root rather than the sidebar. On iPad you never notice, because the detail root is permanently on screen in the other column.
+- **`horizontalSizeClass` is the wrong tool inside a column.** A column reports its own width, so a narrow sidebar on a full-size iPad reads as `.compact` while both panes are visible.
+
+`SplitRoutingView` sits outside the split view, so it can read the window's size class and publish it as `isCollapsed`. Branch on that when a push should read as one level to the user:
 
 ```swift
-let appRouter = SplitRouter<SidebarRoute, DetailRoute, ModalRoute>()
+if appRouter.isCollapsed {
+    appRouter.sidebar.push(route: .article(id))   // one stack: stays one level
+} else {
+    appRouter.push(route: .article(id))           // detail column
+}
 ```
 
-Use `Never` for the modals parameter when a screen has no screen-level modals: `SplitRouter<AppRoute, AppRoute, Never>`.
+### Layout state
 
-`SplitRoutingView` also passes through `columnVisibility` and `preferredCompactColumn` bindings when you need them.
+`isCollapsed`, `preferredCompactColumn` and `columnVisibility` live on the router, not as `@State` alongside the view, so layout can be driven from wherever the router reaches — a coordinator, a deep link handler — without threading bindings:
+
+```swift
+appRouter.preferredCompactColumn = .detail   // reveal the detail pane
+appRouter.columnVisibility = .all
+```
+
+They default to SwiftUI's own `.sidebar` and `.automatic`, and SwiftUI writes back to both as the user navigates. One gotcha worth knowing: a *bound* `.automatic` is not the same as an unbound `NavigationSplitView` — on iPad it starts the sidebar hidden. Set `columnVisibility = .all` when you want both columns from launch.
+
+Set `preferredCompactColumn` explicitly alongside navigation that should be visible: SwiftUI does not reliably follow a column's own selection when that column has its own `NavigationStack`.
+
+### Modals over the whole screen
+
+Present them on the split router. Two things make that work as well as a dedicated surface would, both measured rather than assumed:
+
+- A collapsed split view keeps **both** columns in the hierarchy, so the presentation shows whichever pane is visible.
+- A full-screen cover presented from a column covers the **whole window**, not just that column.
+
+Only one modal is on screen at a time regardless: UIKit presents one per view-controller chain, so a sheet raised while the other column already has one showing will not appear. Stack them with `target: .deepest`, which presents on the child router of the one already up.
 
 > **Sidebar rows: prefer `List(selection:)`.** In compact width (iPhone, iPad Split View), `NavigationSplitView` only switches to the detail pane automatically when navigation comes from a `List` selection change. Plain `Button` rows swap state without moving the user, which reads as "nothing happened" on iPhone — if you use them, drive the `preferredCompactColumn` binding yourself. A clean pattern that keeps your coordinator in charge is a custom binding:
 >
@@ -255,31 +309,38 @@ Use `Never` for the modals parameter when a screen has no screen-level modals: `
 >     set: { coordinator.select($0) }   // choreography lives in one place
 > )) { ... }
 > ```
+>
+> Also note a column reports **its own** width: an iPad sidebar is narrow enough to report `horizontalSizeClass == .compact` while the split view is showing both panes. Read the size class outside the split view if you need the window's.
+
 
 ### Presenting from containers without a stack
 
-`RoutingView` bundles a `NavigationStack` with modal hosting. When the presenting context owns its navigation — a split view, a `TabView`, or a stack driven elsewhere — attach just the modal hosting:
+`RoutingView` bundles a `NavigationStack` with modal hosting. When the presenting view already sits inside navigation — a subview deep in a column, a `TabView`, a hand-rolled split view — attach just the modal hosting:
 
 ```swift
-NavigationSplitView { sidebar } detail: { detail }
-    .routerPresentations(modalsRouter)
+struct PartDetailView: View {
+    @State private var photoRouter = Router<PhotoRoute>()
 
-modalsRouter.presentSheet(route: .settings)
+    var body: some View {
+        content
+            .routerPresentations(photoRouter)   // no extra NavigationStack
+            .environment(photoRouter)
+    }
+}
+
+photoRouter.present(route: .camera(partId: id))
 ```
 
 ### Destinations that own their navigation
 
-Presented routes are normally wrapped in a `RoutingView` so they can push and present further. If a destination *is* a navigation container (a `NavigationSplitView`, or a view that builds its own `NavigationStack`), declare it on the route and it presents bare:
+Presented routes are normally wrapped in a `RoutingView` so they can push and present further. If a destination *is* a navigation container (a `NavigationSplitView`, or a view that builds its own `NavigationStack`), present it with `navigation: .own` and it goes up as-is:
 
 ```swift
-enum ModalRoute: Routable {
-    case fullScreenWorkspace
-
-    var providesOwnNavigation: Bool { true }
-
-    func destination() -> some View { WorkspaceSplitView() }
-}
+router.present(route: .fullScreenWorkspace, navigation: .own)
+router.presentSheet(route: .taskTeam, navigation: .own)
 ```
+
+It's a property of the presentation, not of the route type, so the same route can be wrapped in one place and bare in another. `replace` keeps the flag it was opened with — swap only between routes that agree on it.
 
 ## Cross-Tab Routing
 
@@ -362,39 +423,34 @@ TabView(selection: $selectedTab) {
 ## Dismiss Button Options
 
 The presenter chooses the dismiss button for the modal it shows, so pass the
-options when presenting — a router's own `dismissOptions` is read-only.
-`.visible` (a leading button) and `.hidden` (none) cover the common cases:
+options when presenting. `.visible` (a leading button) and `.hidden` (none)
+cover the common cases:
 
 ```swift
 // Full-screen cover with dismiss button on the left (.visible is the default)
 router.present(route: .settings)
 
 // Sheet with a dismiss button (sheets default to .hidden — they swipe away)
-router.presentSheet(route: .settings, dismissOptions: .visible)
+router.presentSheet(route: .settings, navigation: .stack(dismiss: .visible))
 
 // Dismiss button on the right
 router.present(
     route: .settings,
-    dismissOptions: .init(dismissButtonPosition: .right)
-)
-
-// Show dismiss button on pushed views within a modal
-router.present(
-    route: .settings,
-    dismissOptions: .init(
-        showDismissButton: true,
-        showDismissButtonOnPush: true
-    )
+    navigation: .stack(dismiss: .init(dismissButtonPosition: .right))
 )
 ```
 
+`navigation: .own` carries no dismiss options at all — a destination that owns
+its navigation owns its chrome, and closes itself with `@Environment(\.dismiss)`.
+
 ## Example App
 
-The `ExampleRouterDemo` Xcode project demonstrates all features with a 4-tab app:
+The `ExampleRouterDemo` Xcode project demonstrates all features with a 5-tab app:
 
 - **Home** — push navigation, full-screen covers, cross-tab routing
 - **Stacking** — present sheets on top of sheets using `target: .deepest`, dismiss all with `dismissAllFromRoot()`
 - **Profile** — full-screen cover with dismiss button positioning
+- **Split** — `SplitRoutingView` with a button per `SplitRouter` API: column pushes, sheets and covers from either column, and `popAllToRoot()`. Run it on iPad and on iPhone to see that a column's presentations work in both layouts
 - **Deep Links** — tappable deep link URLs that trigger tab switching and navigation
 
 To run it, open `ExampleRouterDemo/ExampleRouterDemo.xcodeproj` — the Router package is already included as a local dependency.

@@ -11,36 +11,34 @@ struct RouterPresentationsModifier<Destination: Routable>: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .sheet(
-                item: $router.presentingSheet,
-                onDismiss: router.onPresentationDismissed
-            ) { route in
-                presentedContent(for: route, as: .sheet)
-                    .ifLet(router.sheetPresentationOptions.detents) { view, detents in
+            .sheet(item: $router.presentingSheet, onDismiss: router.onPresentationDismissed) { item in
+                presentedContent(for: item, as: .sheet)
+                    .ifLet(item.sheetOptions.detents) { view, detents in
                         view.presentationDetents(detents)
                     }
-                    .presentationDragIndicator(router.sheetPresentationOptions.dragIndicator)
+                    .presentationDragIndicator(item.sheetOptions.dragIndicator)
             }
             #if os(iOS)
-            .fullScreenCover(
-                item: $router.presentingFullScreenCover,
-                onDismiss: router.onPresentationDismissed
-            ) { route in
-                presentedContent(for: route, as: .fullScreenCover)
+            .fullScreenCover(item: $router.presentingFullScreenCover, onDismiss: router.onPresentationDismissed) { item in
+                presentedContent(for: item, as: .fullScreenCover)
             }
             #endif
     }
 
-    /// The content hosted inside a sheet or cover: a `RoutingView` backed by
-    /// a child router (enabling pushes and further presentation), or the bare
-    /// destination when the route provides its own navigation container.
     @ViewBuilder
-    private func presentedContent(for route: Destination, as routeType: NavigationType) -> some View {
-        if route.providesOwnNavigation {
-            route.destination()
-        } else {
-            RoutingView(router.routerFor(routeType: routeType, toShow: route)) { childRouter in
-                childRouter.start(route)
+    private func presentedContent(
+        for item: PresentedRoute<Destination>,
+        as routeType: NavigationType
+    ) -> some View {
+        switch item.navigation {
+        case .own:
+            item.route.destination()
+        case let .stack(dismiss):
+            RoutingView(
+                router.routerFor(routeType: routeType, toShow: item.route),
+                dismissOptions: dismiss
+            ) { childRouter in
+                childRouter.start(item.route)
             }
         }
     }
@@ -51,17 +49,8 @@ public extension View {
     /// view, without introducing a `NavigationStack`.
     ///
     /// Use this when the presenting context owns its own navigation — a
-    /// `NavigationSplitView`, a `TabView`, or a plain view — and you want
-    /// modals driven by `router.presentSheet(...)` / `router.present(...)`:
-    ///
-    /// ```swift
-    /// NavigationSplitView { sidebar } detail: { detail }
-    ///     .routerPresentations(modalsRouter)
-    /// ```
-    ///
-    /// Presented content runs inside its own `RoutingView` with a child
-    /// router, so routes can push and present further; `RoutingView` uses
-    /// this same modifier internally, so behavior is identical either way.
+    /// `NavigationSplitView`, a `TabView`, or a plain view. `RoutingView` uses
+    /// the same modifier internally, so behavior is identical either way.
     func routerPresentations<Destination: Routable>(
         _ router: Router<Destination>
     ) -> some View {

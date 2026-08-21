@@ -9,7 +9,7 @@ import SwiftUI
 import Router
 
 enum AppTab: String, CaseIterable, Hashable {
-    case home, stacking, profile, deepLinks
+    case home, stacking, profile, split, deepLinks
 }
 
 struct MainTabView: View {
@@ -19,6 +19,7 @@ struct MainTabView: View {
     @State var stackingRouter = AppRouter()
     @State var profileRouter = AppRouter()
     @State var deepLinksRouter = AppRouter()
+    @State var splitRouter = SplitAppRouter(columnVisibility: .all)
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -38,6 +39,10 @@ struct MainTabView: View {
                 RoutingView(profileRouter) { router in
                     router.start(.profile(.profile))
                 }
+            }
+
+            Tab("Split", systemImage: "sidebar.left", value: AppTab.split) {
+                SplitDemoView(router: splitRouter)
             }
 
             Tab("Deep Links", systemImage: "link", value: AppTab.deepLinks) {
@@ -73,6 +78,20 @@ struct MainTabView: View {
             if path.first == "edit" {
                 navigateAfterTabSwitch {
                     profileRouter.present(route: .profile(.editProfile))
+                }
+            }
+        case "split":
+            // routerdemo://split/article/7 → push in the detail column
+            // routerdemo://split/folder/2  → drill the sidebar column
+            selectedTab = .split
+            splitRouter.popAllToRoot()
+            if let kind = path.first, let id = path.dropFirst().first.flatMap({ Int($0) }) {
+                navigateAfterTabSwitch {
+                    switch kind {
+                    case "article": splitRouter.push(route: .split(.article(id)))
+                    case "folder": splitRouter.sidebarPath = [.split(.folder(id))]
+                    default: break
+                    }
                 }
             }
         default:

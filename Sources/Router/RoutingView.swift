@@ -6,31 +6,37 @@ public struct RoutingView<Content: View, Destination: Routable>: View
     @Bindable var router: Router<Destination>
     private let rootContent: (Router<Destination>) -> Content
 
+    /// Set by `RouterPresentationsModifier` for the view it presents. Defaults
+    /// to `.hidden`, so a `RoutingView` built anywhere else shows no button.
+    private let dismissOptions: DismissButtonPresentationOptions
+
     public init(
         _ router: Router<Destination>,
+        dismissOptions: DismissButtonPresentationOptions = .hidden,
         @ViewBuilder content: @escaping (Router<Destination>) -> Content
     ) {
         self.router = router
+        self.dismissOptions = dismissOptions
         self.rootContent = content
     }
 
     public var body: some View {
         NavigationStack(path: $router.path) {
             rootContent(router)
-                .if(router.dismissOptions.showDismissButton) {
+                .if(dismissOptions.showDismissButton) {
                     $0.toolbar {
                         DismissToolbar(
-                            dismissOptions: router.dismissOptions,
+                            dismissOptions: dismissOptions,
                             dismissAction: router.dismissOrPopToRoot
                         )
                     }
                 }
                 .navigationDestination(for: Destination.self) { route in
                     route.destination()
-                        .if(router.showDismissButtonOnPush) {
+                        .if(dismissOptions.showDismissButton && dismissOptions.showDismissButtonOnPush) {
                             $0.toolbar {
                                 DismissToolbar(
-                                    dismissOptions: router.dismissOptions,
+                                    dismissOptions: dismissOptions,
                                     dismissAction: router.dismissOrPopToRoot
                                 )
                             }

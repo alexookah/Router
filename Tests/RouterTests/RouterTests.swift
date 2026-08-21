@@ -177,7 +177,7 @@ struct StackManipulationTests {
 
         child.replace(with: .profile)
 
-        #expect(parent.presentingSheet == .profile)
+        #expect(parent.presentingSheet?.route == .profile)
         let replacement = parent.routerFor(routeType: .sheet, toShow: .profile)
         #expect(replacement !== child)
     }
@@ -206,21 +206,20 @@ struct SheetPresentationTests {
     @Test func presentSheet() {
         let router = Router<TestRoute>()
         router.presentSheet(route: .settings)
-        #expect(router.presentingSheet == .settings)
+        #expect(router.presentingSheet?.route == .settings)
         #expect(router.isPresenting)
         #expect(!router.hasChild)
     }
 
     @MainActor
-    @Test func presentSheetStoresDismissOptionsForTheChild() {
+    @Test func presentSheetStoresDismissOptions() {
         let router = Router<TestRoute>()
         router.presentSheet(
             route: .settings,
-            dismissOptions: .init(showDismissButton: true, dismissButtonPosition: .right)
+            navigation: .stack(dismiss: .init(showDismissButton: true, dismissButtonPosition: .right))
         )
-        let child = router.routerFor(routeType: .sheet, toShow: .settings)
-        #expect(child.dismissOptions.showDismissButton)
-        #expect(child.dismissOptions.dismissButtonPosition == .right)
+        #expect(router.presentingSheet?.navigation.dismissOptions?.showDismissButton == true)
+        #expect(router.presentingSheet?.navigation.dismissOptions?.dismissButtonPosition == .right)
     }
 
     @MainActor
@@ -228,7 +227,7 @@ struct SheetPresentationTests {
         let router = Router<TestRoute>()
         let options = SheetPresentationOptions(detents: [.medium], dragIndicator: .hidden)
         router.presentSheet(route: .settings, options: options)
-        #expect(router.sheetPresentationOptions == options)
+        #expect(router.presentingSheet?.sheetOptions == options)
     }
 }
 
@@ -241,7 +240,7 @@ struct FullScreenCoverTests {
     @Test func presentFullScreenCover() {
         let router = Router<TestRoute>()
         router.present(route: .profile)
-        #expect(router.presentingFullScreenCover == .profile)
+        #expect(router.presentingFullScreenCover?.route == .profile)
         #expect(router.isPresenting)
     }
 }
@@ -436,6 +435,71 @@ struct NavigationTargetTests {
     }
 }
 
+// MARK: - Dismissing hierarchy
+
+/// `.current` resolves through `nearestActiveRouter`, which must skip routers
+/// whose presentation is being torn down.
+@Suite("Dismissing Hierarchy")
+struct DismissingHierarchyTests {
+    @MainActor
+    @Test func childOfNonPresentingParentIsDismissing() {
+        let parent = Router<TestRoute>()
+        let child = Router<TestRoute>(parentRouter: parent)
+        #expect(child.isDismissing)
+    }
+
+    @MainActor
+    @Test func childOfPresentingParentIsNotDismissing() {
+        let parent = Router<TestRoute>()
+        parent.presentSheet(route: .settings)
+        let child = parent.routerFor(routeType: .sheet, toShow: .settings)
+        #expect(!child.isDismissing)
+    }
+
+    /// A dismissing router hands its navigation to the parent instead of
+    /// pushing onto a stack that is going away.
+    @MainActor
+    @Test func currentTargetSkipsDismissingRouter() {
+        let parent = Router<TestRoute>()
+        let child = Router<TestRoute>(parentRouter: parent)
+
+        child.push(route: .home)
+
+        #expect(parent.path == [.home])
+        #expect(child.path.isEmpty)
+    }
+
+    /// The condition is re-tested at every hop, so a whole dismissing chain
+    /// resolves to the first router that isn't.
+    @MainActor
+    @Test func currentTargetWalksWholeDismissingChain() {
+        let root = Router<TestRoute>()
+        let child = Router<TestRoute>(parentRouter: root)
+        let grandchild = Router<TestRoute>(parentRouter: child)
+        #expect(child.isDismissing)
+        #expect(grandchild.isDismissing)
+
+        grandchild.push(route: .home)
+
+        #expect(root.path == [.home])
+        #expect(child.path.isEmpty)
+        #expect(grandchild.path.isEmpty)
+    }
+
+    /// An active router keeps its own navigation.
+    @MainActor
+    @Test func currentTargetStaysOnActiveRouter() {
+        let parent = Router<TestRoute>()
+        parent.presentSheet(route: .settings)
+        let child = parent.routerFor(routeType: .sheet, toShow: .settings)
+
+        child.push(route: .home)
+
+        #expect(child.path == [.home])
+        #expect(parent.path.isEmpty)
+    }
+}
+
 // MARK: - isFullyAtRoot
 
 @Suite("isFullyAtRoot")
@@ -470,48 +534,294 @@ struct IsFullyAtRootTests {
 
 // MARK: - showDismissButtonOnPush
 
-@Suite("showDismissButtonOnPush")
-struct ShowDismissButtonOnPushTests {
+@Suite("Presentation dismiss options")
+struct PresentationDismissOptionsTests {
+    /// The presentation carries its dismiss configuration; `RoutingView`
+    /// receives it from the presenting modifier, not from the router.
     @MainActor
-    @Test func falseForRootRouter() {
+    @Test func presentingStoresDismissOptions() {
         let router = Router<TestRoute>()
-        router.presentationDismissOptions = DismissButtonPresentationOptions(
-            showDismissButton: true,
-            showDismissButtonOnPush: true
+        router.presentSheet(
+            route: .settings,
+            navigation: .stack(dismiss: .init(showDismissButton: true, showDismissButtonOnPush: true))
         )
-        #expect(!router.showDismissButtonOnPush)
+        #expect(router.presentingSheet?.navigation.dismissOptions?.showDismissButton == true)
+        #expect(router.presentingSheet?.navigation.dismissOptions?.showDismissButtonOnPush == true)
+    }
+
+    #if os(iOS)
+    /// `.own` carries no dismiss options — the combination that used to be
+    /// expressible, and silently ignored, is now unrepresentable.
+    @MainActor
+    @Test func ownNavigationHasNoDismissOptions() {
+        let router = Router<TestRoute>()
+        router.presentSheet(route: .settings)
+        #expect(router.presentingSheet?.navigation == .stack(dismiss: .hidden))
+
+        router.presentSheet(route: .settings, navigation: .own)
+        #expect(router.presentingSheet?.navigation == .own)
+        #expect(router.presentingSheet?.navigation.dismissOptions == nil)
     }
 
     @MainActor
-    @Test func trueWhenAllConditionsMet() {
-        let parent = Router<TestRoute>()
-        let child = Router<TestRoute>(parentRouter: parent)
-        parent.presentationDismissOptions = DismissButtonPresentationOptions(
-            showDismissButton: true,
-            showDismissButtonOnPush: true
-        )
-        #expect(child.showDismissButtonOnPush)
+    @Test func coversDefaultToAVisibleDismissButton() {
+        let router = Router<TestRoute>()
+        router.present(route: .settings)
+        #expect(router.presentingFullScreenCover?.navigation.dismissOptions?.showDismissButton == true)
+    }
+    #endif
+}
+
+@Suite("SplitRouter")
+struct SplitRouterTests {
+    @MainActor
+    @Test func surfacesStartEmpty() {
+        let router = SplitRouter<TestRoute>()
+        #expect(router.isFullyAtRoot)
+        #expect(router.sidebar.isFullyAtRoot)
     }
 
     @MainActor
-    @Test func falseWhenShowDismissButtonIsFalse() {
-        let parent = Router<TestRoute>()
-        let child = Router<TestRoute>(parentRouter: parent)
-        parent.presentationDismissOptions = DismissButtonPresentationOptions(
-            showDismissButton: false,
-            showDismissButtonOnPush: true
-        )
-        #expect(!child.showDismissButtonOnPush)
+    @Test func splitRoutingViewConstructs() {
+        let router = SplitRouter<TestRoute>()
+        _ = SplitRoutingView(router, sidebar: .home, detail: .profile)
+        #expect(router.isFullyAtRoot)
+    }
+
+    /// Defaults mirror SwiftUI's own. Note a bound `.automatic` starts the
+    /// sidebar hidden on iPad — apps wanting both columns set `.all`.
+    @MainActor
+    @Test func layoutDefaults() {
+        let router = SplitRouter<TestRoute>()
+        #expect(router.preferredCompactColumn == .sidebar)
+        #expect(router.columnVisibility == .automatic)
+        #expect(!router.isCollapsed)
+    }
+
+    /// The split router *is* the detail column, so `detail` is an alias for it.
+    @MainActor
+    @Test func detailIsTheRouterItself() {
+        let router = SplitRouter<TestRoute>()
+        #expect(router.detail === router)
+
+        router.push(route: .profile)
+        #expect(router.detail.path == [.profile])
+
+        router.detail.push(route: .settings)
+        #expect(router.path == [.profile, .settings])
     }
 
     @MainActor
-    @Test func falseWhenShowDismissButtonOnPushIsFalse() {
-        let parent = Router<TestRoute>()
-        let child = Router<TestRoute>(parentRouter: parent)
-        parent.presentationDismissOptions = DismissButtonPresentationOptions(
-            showDismissButton: true,
-            showDismissButtonOnPush: false
-        )
-        #expect(!child.showDismissButtonOnPush)
+    @Test func columnsAreIndependent() {
+        let router = SplitRouter<TestRoute>()
+        router.sidebarPath.append(.detail("folder"))
+        router.push(route: .profile)
+
+        #expect(router.sidebarPath == [.detail("folder")])
+        #expect(router.path == [.profile])
+    }
+
+    /// Modals over the screen are presented on the split router; the sidebar
+    /// column keeps its own slot.
+    @MainActor
+    @Test func screenModalLeavesTheSidebarAlone() {
+        let router = SplitRouter<TestRoute>()
+        router.presentSheet(route: .settings)
+
+        #expect(router.presentingSheet?.route == .settings)
+        #expect(router.sidebar.presentingSheet == nil)
+    }
+
+    /// A screen modal and a detail-local one are the same slot now, so the
+    /// second replaces the first. That matches what the screen does anyway:
+    /// UIKit shows one modal per view-controller chain (verified on iPad).
+    /// Use `target: .deepest` to stack.
+    @MainActor
+    @Test func screenAndDetailModalsShareOneSlot() {
+        let router = SplitRouter<TestRoute>()
+        router.presentSheet(route: .profile)
+        router.presentSheet(route: .settings)
+
+        #expect(router.presentingSheet?.route == .settings)
+    }
+
+    #if os(iOS)
+    @MainActor
+    @Test func screenCoverUsesTheCoverSlot() {
+        let router = SplitRouter<TestRoute>()
+        router.present(route: .settings)
+
+        #expect(router.presentingFullScreenCover?.route == .settings)
+        #expect(router.presentingSheet == nil)
+    }
+    #endif
+
+    @MainActor
+    @Test func sidebarDismissalDoesNotTouchTheScreenModal() {
+        let router = SplitRouter<TestRoute>()
+        router.sidebar.presentSheet(route: .profile)
+        router.presentSheet(route: .settings)
+
+        router.sidebar.dismissChild()
+
+        #expect(router.sidebar.presentingSheet == nil)
+        #expect(router.presentingSheet?.route == .settings)
+    }
+
+    @MainActor
+    @Test func popAllToRootClearsEverySurface() {
+        let router = SplitRouter<TestRoute>()
+        router.sidebarPath = [.home, .settings]
+        router.path = [.profile]
+        router.sidebar.presentSheet(route: .profile)
+        router.presentSheet(route: .settings)
+
+        router.popAllToRoot()
+
+        #expect(router.isFullyAtRoot)
+        #expect(router.sidebar.isFullyAtRoot)
+    }
+
+    /// A split router is a `Router`, so it can be handed to anything taking one.
+    @MainActor
+    @Test func isUsableAsARouter() {
+        let router = SplitRouter<TestRoute>()
+        let asRouter: Router<TestRoute> = router
+        asRouter.presentSheet(route: .settings)
+        #expect(router.presentingSheet?.route == .settings)
+    }
+}
+
+// MARK: - SplitRouter observation
+
+@Suite("SplitRouter observation")
+struct SplitRouterObservationTests {
+    private final class Box: @unchecked Sendable { var fired = false }
+
+    /// The split router inherits observation from `Router`, so its own
+    /// screen-level state is tracked without re-annotating the subclass.
+    @MainActor
+    @Test func screenLevelStateIsObserved() {
+        let router = SplitRouter<TestRoute>()
+        let box = Box()
+        withObservationTracking {
+            _ = router.presentingSheet
+        } onChange: {
+            box.fired = true
+        }
+        router.presentSheet(route: .settings)
+        #expect(box.fired)
+    }
+
+    /// Column state is observed through each column's own router.
+    @MainActor
+    @Test func columnStateIsObserved() {
+        let router = SplitRouter<TestRoute>()
+        let box = Box()
+        withObservationTracking {
+            _ = router.sidebarPath
+        } onChange: {
+            box.fired = true
+        }
+        router.sidebarPath.append(.home)
+        #expect(box.fired)
+    }
+
+    /// `SplitRouter` re-declares `@Observable` over an already-observable
+    /// superclass. That is load-bearing: without it the layout properties it
+    /// adds would mutate silently and no view would redraw.
+    @MainActor
+    @Test func layoutStateIsObserved() {
+        let router = SplitRouter<TestRoute>()
+        let box = Box()
+        withObservationTracking {
+            _ = router.isCollapsed
+        } onChange: {
+            box.fired = true
+        }
+        router.isCollapsed = true
+        #expect(box.fired)
+    }
+}
+
+// MARK: - Replace In Place
+
+@Suite("Replace In Place")
+struct ReplaceInPlaceTests {
+    /// Presenting stores the route as its own presentation identity.
+    @MainActor
+    @Test func presentingUsesTheRouteAsIdentity() {
+        let router = Router<TestRoute>()
+        router.presentSheet(route: .home)
+        #expect(router.presentingSheet?.id == .home)
+
+        router.presentSheet(route: .settings)
+        #expect(router.presentingSheet?.id == .settings)
+    }
+
+    /// Direct assignment behaves like a fresh present — new identity.
+    @MainActor
+    @Test func directAssignmentIsAFreshPresentation() {
+        let router = Router<TestRoute>()
+        router.presentingSheet = .init(.home)
+        #expect(router.presentingSheet?.id == .home)
+
+        router.presentingSheet = .init(.settings)
+        #expect(router.presentingSheet?.id == .settings)
+    }
+
+    /// `replace` swaps the route while keeping the presentation's id, so
+    /// `sheet(item:)` replaces the view in place.
+    @MainActor
+    @Test func replaceKeepsThePresentationIdentity() {
+        let router = Router<TestRoute>()
+        router.presentSheet(route: .home, options: .init(detents: [.medium]))
+        let child = router.routerFor(routeType: .sheet, toShow: .home)
+
+        child.replace(with: .settings)
+
+        #expect(router.presentingSheet?.route == .settings)
+        #expect(router.presentingSheet?.id == .home)
+        #expect(router.presentingSheet?.sheetOptions.detents == [.medium])
+    }
+
+    #if os(iOS)
+    @MainActor
+    @Test func replaceKeepsTheCoverIdentity() {
+        let router = Router<TestRoute>()
+        router.present(route: .home)
+        let child = router.routerFor(routeType: .fullScreenCover, toShow: .home)
+
+        child.replace(with: .settings)
+
+        #expect(router.presentingFullScreenCover?.route == .settings)
+        #expect(router.presentingFullScreenCover?.id == .home)
+        #expect(router.presentingFullScreenCover?.navigation.dismissOptions?.showDismissButton == true)
+    }
+    #endif
+
+    /// The replacement route gets a fresh child router — the old modal's
+    /// stack must not leak into the new content.
+    @MainActor
+    @Test func replacementGetsAFreshChildRouter() {
+        let router = Router<TestRoute>()
+        router.presentSheet(route: .home)
+        let oldChild = router.routerFor(routeType: .sheet, toShow: .home)
+        oldChild.push(route: .profile)
+
+        oldChild.replace(with: .settings)
+        let newChild = router.routerFor(routeType: .sheet, toShow: .settings)
+
+        #expect(newChild !== oldChild)
+        #expect(newChild.path.isEmpty)
+    }
+
+    @MainActor
+    @Test func dismissalClearsThePresentation() {
+        let router = Router<TestRoute>()
+        router.presentSheet(route: .home)
+        router.dismissChild()
+        #expect(router.presentingSheet == nil)
+        #expect(router.presentingSheet == nil)
     }
 }

@@ -26,11 +26,11 @@ struct HomeView: View {
                 Button("Settings (Full Screen)") {
                     router.present(
                         route: .home(.settings),
-                        dismissOptions: .init(
+                        navigation: .stack(dismiss: .init(
                             showDismissButton: true,
                             dismissButtonPosition: .right,
                             showDismissButtonOnPush: true
-                        )
+                        ))
                     )
                 }
             }
