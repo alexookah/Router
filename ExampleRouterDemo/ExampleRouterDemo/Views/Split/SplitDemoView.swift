@@ -107,6 +107,17 @@ struct SplitOverviewView: View {
                     router.present(route: .split(.editor))
                 }
                 #endif
+                #if os(iOS)
+                Button("present a whole split screen (cover)") {
+                    router.present(
+                        route: .split(.nestedSplit),
+                        navigation: .split(
+                            sidebar: .split(.folders),
+                            detail: .split(.overview)
+                        )
+                    )
+                }
+                #endif
                 Button("Stack two with target: .deepest") {
                     router.presentSheet(route: .split(.share))
                     router.presentSheet(route: .split(.settings), target: .deepest)
@@ -156,12 +167,23 @@ struct SplitModalView: View {
     @Environment(Router<AppRoute>.self) private var router
     @Environment(SplitAppRouter.self) private var splitRouter
 
+    /// The modal routes, to pick a replacement from.
+    private static let modals: [(route: SplitRoute, name: String)] = [
+        (.filters, "Filters"), (.share, "Share"),
+        (.settings, "Settings"), (.editor, "Editor"),
+    ]
+
+    /// Extracted: inlining this ternary tips the type-checker over.
+    private func replaceLabel(_ modal: (route: SplitRoute, name: String)) -> String {
+        modal.name == title ? modal.name + " — current, no-op" : modal.name
+    }
+
     var body: some View {
         List {
             LabeledContent("Hosted by", value: hostedBy)
             Menu("replace — swap this modal's content in place") {
                 ForEach(Self.modals, id: \.name) { modal in
-                    Button(modal.name == title ? "\(modal.name) — current, no-op" : modal.name) {
+                    Button(replaceLabel(modal)) {
                         router.replace(with: .split(modal.route))
                     }
                 }

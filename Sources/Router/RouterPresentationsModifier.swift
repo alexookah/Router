@@ -33,6 +33,12 @@ struct RouterPresentationsModifier<Destination: Routable>: ViewModifier {
         switch item.navigation {
         case .own:
             item.route.destination()
+        case let .split(sidebar, detail):
+            SplitRoutingView(
+                router.splitRouterFor(toShow: item.route),
+                sidebar: sidebar,
+                detail: detail
+            )
         case let .stack(dismiss):
             RoutingView(
                 router.routerFor(routeType: routeType, toShow: item.route),

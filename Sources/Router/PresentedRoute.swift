@@ -2,19 +2,23 @@ import SwiftUI
 
 /// Who supplies the navigation container for a presented route.
 ///
-/// The two cases are exclusive by construction: a destination that brings its
-/// own container also brings its own chrome, so there are no dismiss options
-/// to configure — use `@Environment(\.dismiss)` inside it.
-public enum PresentedNavigation: Equatable {
+/// Only ``stack(dismiss:)`` carries dismiss options: the other two put a
+/// container on screen that owns its own chrome, and close themselves with
+/// `@Environment(\.dismiss)`.
+public enum PresentedNavigation<Destination: Routable>: Equatable {
     /// The router wraps the destination in a `RoutingView`, so it can push and
     /// present further, with `dismiss` controlling the dismiss button.
     case stack(dismiss: DismissButtonPresentationOptions)
-    /// The destination builds its own `NavigationStack` / `NavigationSplitView`
-    /// and is presented as-is.
+    /// The router presents a ``SplitRoutingView`` over the two given roots,
+    /// backed by a child ``SplitRouter``. The presented route itself is only
+    /// the presentation's identity — these roots are what render.
+    case split(sidebar: Destination, detail: Destination)
+    /// The destination builds its own navigation container and is presented
+    /// as-is, with no child router.
     case own
 
-    /// The dismiss button configuration, or `nil` when the destination owns
-    /// its navigation.
+    /// The dismiss button configuration, or `nil` when the presented content
+    /// owns its navigation.
     public var dismissOptions: DismissButtonPresentationOptions? {
         if case let .stack(dismiss) = self { dismiss } else { nil }
     }
@@ -30,12 +34,12 @@ public struct PresentedRoute<Destination: Routable>: Identifiable, Equatable {
     public var route: Destination
     /// Fixed for the presentation, so `replace` keeps it — swap only between
     /// routes that agree on it.
-    public var navigation: PresentedNavigation
+    public var navigation: PresentedNavigation<Destination>
     public var sheetOptions: SheetPresentationOptions
 
     public init(
         _ route: Destination,
-        navigation: PresentedNavigation = .stack(dismiss: .hidden),
+        navigation: PresentedNavigation<Destination> = .stack(dismiss: .hidden),
         sheetOptions: SheetPresentationOptions = .init()
     ) {
         self.id = route

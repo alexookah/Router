@@ -16,10 +16,11 @@ import SwiftUI
 public final class SplitRouter<Destination: Routable>: Router<Destination> {
 
     public init(
+        parentRouter: Router<Destination>? = nil,
         columnVisibility: NavigationSplitViewVisibility = .automatic,
         preferredCompactColumn: NavigationSplitViewColumn = .sidebar
     ) {
-        super.init()
+        super.init(parentRouter: parentRouter)
         self.columnVisibility = columnVisibility
         self.preferredCompactColumn = preferredCompactColumn
     }

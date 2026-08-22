@@ -90,6 +90,7 @@ enum SplitRoute: Routable {
     case share
     case settings
     case editor
+    case nestedSplit
 
     func destination() -> some View {
         switch self {
@@ -105,6 +106,8 @@ enum SplitRoute: Routable {
             SplitModalView(title: "Settings", hostedBy: "the split router")
         case .editor:
             SplitModalView(title: "Editor", hostedBy: "the split router (cover)")
+        case .nestedSplit:
+            EmptyView()
         }
     }
 }

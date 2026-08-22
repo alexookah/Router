@@ -82,6 +82,19 @@ public class Router<Destination: Routable> {
         }
     }
 
+    /// The child router for a ``PresentedNavigation/split(sidebar:detail:)``
+    /// presentation. Same reuse rule as ``routerFor(routeType:toShow:)``, but
+    /// the child is a `SplitRouter` so it can drive a ``SplitRoutingView``.
+    public func splitRouterFor(toShow target: Destination) -> SplitRouter<Destination> {
+        if let child, child.destination == target,
+           let split = child.router as? SplitRouter<Destination> {
+            return split
+        }
+        let router = SplitRouter<Destination>(parentRouter: self)
+        child = (router, target)
+        return router
+    }
+
     // MARK: - Navigation
 
     public func push(route: Destination, target: NavigationTarget = .current) {
@@ -96,7 +109,7 @@ public class Router<Destination: Routable> {
     /// `NavigationStack` / `NavigationSplitView`.
     public func present(
         route: Destination,
-        navigation: PresentedNavigation = .stack(dismiss: .visible),
+        navigation: PresentedNavigation<Destination> = .stack(dismiss: .visible),
         target: NavigationTarget = .current
     ) {
         let router = targetRouter(for: target)
@@ -109,7 +122,7 @@ public class Router<Destination: Routable> {
     /// `NavigationStack` / `NavigationSplitView`.
     public func presentSheet(
         route: Destination,
-        navigation: PresentedNavigation = .stack(dismiss: .hidden),
+        navigation: PresentedNavigation<Destination> = .stack(dismiss: .hidden),
         options: SheetPresentationOptions = .init(),
         target: NavigationTarget = .current
     ) {

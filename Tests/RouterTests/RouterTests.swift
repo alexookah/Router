@@ -549,7 +549,6 @@ struct PresentationDismissOptionsTests {
         #expect(router.presentingSheet?.navigation.dismissOptions?.showDismissButtonOnPush == true)
     }
 
-    #if os(iOS)
     /// `.own` carries no dismiss options — the combination that used to be
     /// expressible, and silently ignored, is now unrepresentable.
     @MainActor
@@ -563,6 +562,41 @@ struct PresentationDismissOptionsTests {
         #expect(router.presentingSheet?.navigation.dismissOptions == nil)
     }
 
+    /// A split presentation gets a `SplitRouter` child wired to the presenter,
+    /// so the hierarchy survives the modal boundary — unlike `.own`, which
+    /// hands over a detached root.
+    @MainActor
+    @Test func splitPresentationGetsAParentedSplitRouter() {
+        let root = Router<TestRoute>()
+        root.presentSheet(route: .home, navigation: .split(sidebar: .settings, detail: .profile))
+
+        #expect(root.presentingSheet?.navigation == .split(sidebar: .settings, detail: .profile))
+        #expect(root.presentingSheet?.navigation.dismissOptions == nil)
+
+        let child = root.splitRouterFor(toShow: .home)
+        #expect(!child.isRootRouter)
+        #expect(child.sidebar.isFullyAtRoot)
+
+        // The child can close the presentation it lives in.
+        child.dismiss()
+        #expect(root.presentingSheet == nil)
+    }
+
+    /// Re-rendering reuses the same split child rather than rebuilding it.
+    @MainActor
+    @Test func splitRouterForReusesTheChild() {
+        let root = Router<TestRoute>()
+        root.presentSheet(route: .home, navigation: .split(sidebar: .settings, detail: .profile))
+
+        let first = root.splitRouterFor(toShow: .home)
+        first.push(route: .detail("kept"))
+        let second = root.splitRouterFor(toShow: .home)
+
+        #expect(first === second)
+        #expect(second.path == [.detail("kept")])
+    }
+
+    #if os(iOS)
     @MainActor
     @Test func coversDefaultToAVisibleDismissButton() {
         let router = Router<TestRoute>()
