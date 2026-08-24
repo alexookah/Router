@@ -2,19 +2,17 @@ import SwiftUI
 
 /// Who supplies the navigation container for a presented route.
 ///
-/// Only ``stack(dismiss:)`` carries dismiss options: the other two put a
-/// container on screen that owns its own chrome, and close themselves with
-/// `@Environment(\.dismiss)`.
+/// Only ``stack(dismiss:)`` carries dismiss options: ``own`` content owns its
+/// chrome and closes itself with `@Environment(\.dismiss)`.
 public enum PresentedNavigation<Destination: Routable>: Equatable {
     /// The router wraps the destination in a `RoutingView`, so it can push and
     /// present further, with `dismiss` controlling the dismiss button.
     case stack(dismiss: DismissButtonPresentationOptions)
-    /// The router presents a ``SplitRoutingView`` over the two given roots,
-    /// backed by a child ``SplitRouter``. The presented route itself is only
-    /// the presentation's identity — these roots are what render.
-    case split(sidebar: Destination, detail: Destination)
     /// The destination builds its own navigation container and is presented
-    /// as-is, with no child router.
+    /// as-is, with no child router. Also the shape for presented split
+    /// screens: the destination owns a ``SplitRouter`` and composes a
+    /// ``SplitRoutingView``, which is where any state shared by the columns
+    /// lives.
     case own
 
     /// The dismiss button configuration, or `nil` when the presented content

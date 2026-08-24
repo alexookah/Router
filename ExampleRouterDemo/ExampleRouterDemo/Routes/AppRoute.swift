@@ -107,7 +107,7 @@ enum SplitRoute: Routable {
         case .editor:
             SplitModalView(title: "Editor", hostedBy: "the split router (cover)")
         case .nestedSplit:
-            EmptyView()
+            NestedSplitDemoView()
         }
     }
 }

@@ -82,19 +82,6 @@ public class Router<Destination: Routable> {
         }
     }
 
-    /// The child router for a ``PresentedNavigation/split(sidebar:detail:)``
-    /// presentation. Same reuse rule as ``routerFor(routeType:toShow:)``, but
-    /// the child is a `SplitRouter` so it can drive a ``SplitRoutingView``.
-    public func splitRouterFor(toShow target: Destination) -> SplitRouter<Destination> {
-        if let child, child.destination == target,
-           let split = child.router as? SplitRouter<Destination> {
-            return split
-        }
-        let router = SplitRouter<Destination>(parentRouter: self)
-        child = (router, target)
-        return router
-    }
-
     // MARK: - Navigation
 
     public func push(route: Destination, target: NavigationTarget = .current) {
@@ -155,22 +142,29 @@ public class Router<Destination: Routable> {
     /// The replacement is in place: a same-depth path replace re-renders the
     /// screen, and a presented modal keeps its identity so only its view
     /// changes. For a dismiss-and-re-present, call `presentSheet`/`present`.
+    ///
+    /// `count` is clamped to the pushed path — a replace never crosses into
+    /// the parent's presentation; only an empty path delegates upward,
+    /// where "replace what's visible" has a single possible meaning.
     public func replace(last count: Int = 1, with route: Destination) {
         if path.isEmpty {
-            replaceParentPresentation(with: route)
+            parentRouter?.replacePresented(with: route)
         } else {
             path = Array(path.dropLast(min(count, path.count))) + [route]
         }
     }
 
-    /// Swaps the route while keeping the presentation's id, so `sheet(item:)`
-    /// replaces the view instead of dismissing and re-presenting.
-    private func replaceParentPresentation(with route: Destination) {
-        guard let parentRouter else { return }
-        if let sheet = parentRouter.presentingSheet {
-            parentRouter.presentingSheet = sheet.replacing(route)
-        } else if let cover = parentRouter.presentingFullScreenCover {
-            parentRouter.presentingFullScreenCover = cover.replacing(route)
+    /// Swaps the content of the presentation *this* router is showing, keeping
+    /// its identity so the modal stays on screen rather than being dismissed
+    /// and re-presented.
+    ///
+    /// Use this from the presenting side; ``replace(last:with:)`` is the same
+    /// swap seen from inside the modal, where the parent owns the presentation.
+    public func replacePresented(with route: Destination) {
+        if let sheet = presentingSheet {
+            presentingSheet = sheet.replacing(route)
+        } else if let cover = presentingFullScreenCover {
+            presentingFullScreenCover = cover.replacing(route)
         }
     }
 

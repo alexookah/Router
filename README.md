@@ -342,6 +342,22 @@ router.presentSheet(route: .taskTeam, navigation: .own)
 
 It's a property of the presentation, not of the route type, so the same route can be wrapped in one place and bare in another. `replace` keeps the flag it was opened with — swap only between routes that agree on it.
 
+This is also the shape for presenting a whole split screen: the destination owns a `SplitRouter` and composes the `SplitRoutingView` itself. That wrapper view is not boilerplate — it is the *session scope*: the one place above both columns where objects the columns share can be created, injected, and torn down with the presentation.
+
+```swift
+struct WorkspaceView: View {
+    @State private var router = SplitRouter<AppRoute>()
+    @State private var session = WorkspaceSession()
+
+    var body: some View {
+        SplitRoutingView(router, sidebar: .folders, detail: .overview)
+            .environment(session)   // visible to both columns
+    }
+}
+
+appRouter.present(route: .workspace, navigation: .own)
+```
+
 ## Cross-Tab Routing
 
 Use a single route enum wrapping per-feature routes. Each tab gets its own router, and any view can navigate across tabs:
