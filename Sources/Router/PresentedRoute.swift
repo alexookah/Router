@@ -30,10 +30,10 @@ public enum PresentedNavigation<Destination: Routable>: Equatable {
 public struct PresentedRoute<Destination: Routable>: Identifiable, Equatable {
     public let id: Destination
     public var route: Destination
-    /// Fixed for the presentation, so `replace` keeps it — swap only between
+    /// Fixed for the presentation — `replace` keeps it; swap only between
     /// routes that agree on it.
-    public var navigation: PresentedNavigation<Destination>
-    public var sheetOptions: SheetPresentationOptions
+    public let navigation: PresentedNavigation<Destination>
+    public let sheetOptions: SheetPresentationOptions
 
     public init(
         _ route: Destination,

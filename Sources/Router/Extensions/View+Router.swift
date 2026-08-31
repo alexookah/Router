@@ -1,6 +1,8 @@
 import SwiftUI
 
-public extension View {
+// Internal — generic names like `if`/`ifLet` don't belong in a routing
+// package's public surface; apps define their own.
+extension View {
     @ViewBuilder
     func `if`<Content: View>(
         _ condition: Bool,

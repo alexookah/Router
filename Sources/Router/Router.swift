@@ -15,6 +15,8 @@ public class Router<Destination: Routable> {
     public var presentingSheet: PresentedRoute<Destination>?
 
     /// Same semantics as ``presentingSheet``; `sheetOptions` is unused here.
+    /// iOS only in effect: the property exists on macOS, but nothing hosts a
+    /// full-screen cover there — setting it directly is a silent no-op.
     public var presentingFullScreenCover: PresentedRoute<Destination>?
 
     // MARK: - Private Hierarchy
@@ -157,6 +159,9 @@ public class Router<Destination: Routable> {
     /// Swaps the content of the presentation *this* router is showing, keeping
     /// its identity so the modal stays on screen rather than being dismissed
     /// and re-presented.
+    ///
+    /// The modal survives, its *stack* does not: the new route gets a fresh
+    /// child router, so anything pushed inside the old content is gone.
     ///
     /// Use this from the presenting side; ``replace(last:with:)`` is the same
     /// swap seen from inside the modal, where the parent owns the presentation.

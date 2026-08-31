@@ -29,6 +29,11 @@ public final class SplitRouter<Destination: Routable>: Router<Destination> {
 
     /// Views inside the sidebar column also reach this as their column-local
     /// router via `@Environment(Router<Destination>.self)`.
+    ///
+    /// Deliberately parentless — the sidebar is a column, not a presentation
+    /// of the split router, so `sidebar.dismiss()` is a no-op and
+    /// `target: .root` from a sidebar-presented modal resolves to the
+    /// sidebar, not the split router.
     public let sidebar = Router<Destination>()
 
     public var detail: Router<Destination> { self }
