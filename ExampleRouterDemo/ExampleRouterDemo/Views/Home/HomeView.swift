@@ -27,7 +27,6 @@ struct HomeView: View {
                     router.present(
                         route: .home(.settings),
                         navigation: .stack(dismiss: .init(
-                            showDismissButton: true,
                             dismissButtonPosition: .right,
                             showDismissButtonOnPush: true
                         ))

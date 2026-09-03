@@ -3,20 +3,24 @@ import SwiftUI
 /// Who supplies the navigation container for a presented route.
 ///
 /// Only ``stack(dismiss:)`` carries dismiss options: ``own`` content owns its
-/// chrome and closes itself with `@Environment(\.dismiss)`.
+/// chrome and closes itself.
 public enum PresentedNavigation<Destination: Routable>: Equatable {
     /// The router wraps the destination in a `RoutingView`, so it can push and
-    /// present further, with `dismiss` controlling the dismiss button.
-    case stack(dismiss: DismissButtonPresentationOptions)
+    /// present further. `dismiss` configures the dismiss button; `nil` shows none.
+    case stack(dismiss: DismissButtonPresentationOptions?)
     /// The destination builds its own navigation container and is presented
     /// as-is, with no child router. Also the shape for presented split
     /// screens: the destination owns a ``SplitRouter`` and composes a
     /// ``SplitRoutingView``, which is where any state shared by the columns
     /// lives.
+    ///
+    /// Sheets inherit the presenting view's environment, so inside the content
+    /// `@Environment(Router.self)` is the *presenting* router: `dismissChild()`
+    /// on it is the router-side close, alongside `@Environment(\.dismiss)`.
     case own
 
-    /// The dismiss button configuration, or `nil` when the presented content
-    /// owns its navigation.
+    /// The dismiss button configuration, or `nil` when there is no button —
+    /// a stack presented without one, or content that owns its navigation.
     public var dismissOptions: DismissButtonPresentationOptions? {
         if case let .stack(dismiss) = self { dismiss } else { nil }
     }
@@ -37,7 +41,7 @@ public struct PresentedRoute<Destination: Routable>: Identifiable, Equatable {
 
     public init(
         _ route: Destination,
-        navigation: PresentedNavigation<Destination> = .stack(dismiss: .hidden),
+        navigation: PresentedNavigation<Destination> = .stack(dismiss: nil),
         sheetOptions: SheetPresentationOptions = .init()
     ) {
         self.id = route

@@ -24,21 +24,15 @@ struct MainTabView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             Tab("Home", systemImage: "house", value: AppTab.home) {
-                RoutingView(homeRouter) { router in
-                    router.start(.home(.home))
-                }
+                RoutingView(homeRouter, root: .home(.home))
             }
 
             Tab("Stacking", systemImage: "square.stack", value: AppTab.stacking) {
-                RoutingView(stackingRouter) { router in
-                    router.start(.stacking(.stacking))
-                }
+                RoutingView(stackingRouter, root: .stacking(.stacking))
             }
 
             Tab("Profile", systemImage: "person", value: AppTab.profile) {
-                RoutingView(profileRouter) { router in
-                    router.start(.profile(.profile))
-                }
+                RoutingView(profileRouter, root: .profile(.profile))
             }
 
             Tab("Split", systemImage: "sidebar.left", value: AppTab.split) {
@@ -46,9 +40,7 @@ struct MainTabView: View {
             }
 
             Tab("Deep Links", systemImage: "link", value: AppTab.deepLinks) {
-                RoutingView(deepLinksRouter) { router in
-                    router.start(.deepLinks(.deepLinks))
-                }
+                RoutingView(deepLinksRouter, root: .deepLinks(.deepLinks))
             }
         }
         .onDeepLink { url in

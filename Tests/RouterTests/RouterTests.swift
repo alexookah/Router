@@ -216,9 +216,9 @@ struct SheetPresentationTests {
         let router = Router<TestRoute>()
         router.presentSheet(
             route: .settings,
-            navigation: .stack(dismiss: .init(showDismissButton: true, dismissButtonPosition: .right))
+            navigation: .stack(dismiss: .init(dismissButtonPosition: .right))
         )
-        #expect(router.presentingSheet?.navigation.dismissOptions?.showDismissButton == true)
+        #expect(router.presentingSheet?.navigation.dismissOptions != nil)
         #expect(router.presentingSheet?.navigation.dismissOptions?.dismissButtonPosition == .right)
     }
 
@@ -543,19 +543,21 @@ struct PresentationDismissOptionsTests {
         let router = Router<TestRoute>()
         router.presentSheet(
             route: .settings,
-            navigation: .stack(dismiss: .init(showDismissButton: true, showDismissButtonOnPush: true))
+            navigation: .stack(dismiss: .init(showDismissButtonOnPush: true))
         )
-        #expect(router.presentingSheet?.navigation.dismissOptions?.showDismissButton == true)
+        #expect(router.presentingSheet?.navigation.dismissOptions != nil)
         #expect(router.presentingSheet?.navigation.dismissOptions?.showDismissButtonOnPush == true)
     }
 
-    /// `.own` carries no dismiss options — the combination that used to be
-    /// expressible, and silently ignored, is now unrepresentable.
+    /// "No button" has one spelling: a `nil` in the presentation. `.own`
+    /// carries no options at all, and a stack without a button carries `nil`,
+    /// so a hidden button with on-push settings is unrepresentable.
     @MainActor
     @Test func ownNavigationHasNoDismissOptions() {
         let router = Router<TestRoute>()
         router.presentSheet(route: .settings)
-        #expect(router.presentingSheet?.navigation == .stack(dismiss: .hidden))
+        #expect(router.presentingSheet?.navigation == .stack(dismiss: nil))
+        #expect(router.presentingSheet?.navigation.dismissOptions == nil)
 
         router.presentSheet(route: .settings, navigation: .own)
         #expect(router.presentingSheet?.navigation == .own)
@@ -568,7 +570,7 @@ struct PresentationDismissOptionsTests {
     @Test func coversDefaultToAVisibleDismissButton() {
         let router = Router<TestRoute>()
         router.present(route: .settings)
-        #expect(router.presentingFullScreenCover?.navigation.dismissOptions?.showDismissButton == true)
+        #expect(router.presentingFullScreenCover?.navigation.dismissOptions == .visible)
     }
     #endif
 }
@@ -797,7 +799,7 @@ struct ReplaceInPlaceTests {
 
         #expect(router.presentingFullScreenCover?.route == .settings)
         #expect(router.presentingFullScreenCover?.id == .home)
-        #expect(router.presentingFullScreenCover?.navigation.dismissOptions?.showDismissButton == true)
+        #expect(router.presentingFullScreenCover?.navigation.dismissOptions == .visible)
     }
     #endif
 
@@ -847,5 +849,68 @@ struct ReplaceInPlaceTests {
         router.dismissChild()
         #expect(router.presentingSheet == nil)
         #expect(router.presentingSheet == nil)
+    }
+}
+
+// MARK: - Root Destination
+
+@Suite("Root Destination")
+struct RootDestinationTests {
+    @MainActor
+    @Test func startRecordsTheRoot() {
+        let router = Router<TestRoute>()
+        #expect(router.rootDestination == nil)
+        _ = router.start(.home)
+        #expect(router.rootDestination == .home)
+    }
+
+    /// A conditional root (`hasFolders ? .folders : .empty`) re-runs `start`
+    /// with a new route; the router follows it.
+    @MainActor
+    @Test func startTracksTheLatestRoot() {
+        let router = Router<TestRoute>()
+        _ = router.start(.home)
+        _ = router.start(.settings)
+        #expect(router.rootDestination == .settings)
+    }
+
+    @MainActor
+    @Test func currentDestinationIsTheRootWhenNothingIsPushed() {
+        let router = Router<TestRoute>()
+        #expect(router.currentDestination == nil)
+        _ = router.start(.home)
+        #expect(router.currentDestination == .home)
+        #expect(router.currentDestinationIs(.home))
+    }
+
+    @MainActor
+    @Test func currentDestinationIsTheTopOfThePath() {
+        let router = Router<TestRoute>()
+        _ = router.start(.home)
+        router.push(route: .settings)
+        router.push(route: .profile)
+        #expect(router.currentDestination == .profile)
+        #expect(!router.currentDestinationIs(.home))
+    }
+
+    @MainActor
+    @Test func previousDestinationIsWhatPopReveals() {
+        let router = Router<TestRoute>()
+        _ = router.start(.home)
+        #expect(router.previousDestination == .home)
+        router.push(route: .settings)
+        #expect(router.previousDestination == .home)
+        router.push(route: .profile)
+        #expect(router.previousDestination == .settings)
+        router.pop()
+        #expect(router.previousDestination == .home)
+    }
+
+    @MainActor
+    @Test func routingViewRootInitializerConstructs() {
+        let router = Router<TestRoute>()
+        _ = RoutingView(router, root: .home)
+        _ = RoutingView(router, root: .home, dismissOptions: .visible)
+        #expect(router.isFullyAtRoot)
     }
 }

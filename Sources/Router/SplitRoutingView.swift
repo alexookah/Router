@@ -57,12 +57,12 @@ public struct SplitRoutingView<Destination: Routable>: View {
     }
 
     private var sidebarColumn: some View {
-        RoutingView(router.sidebar) { $0.start(sidebarRoute) }
+        RoutingView(router.sidebar, root: sidebarRoute)
     }
 
     /// The split router *is* this column's router, so it hosts both this stack
     /// and the screen's modals.
     private var detailColumn: some View {
-        RoutingView(router) { $0.start(detailRoute) }
+        RoutingView(router, root: detailRoute)
     }
 }

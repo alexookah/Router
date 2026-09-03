@@ -7,10 +7,12 @@ import SwiftUI
 /// `PresentedRoute`'s identity both hash the route. No `Identifiable`
 /// conformance is claimed, so a route's own `id` stays the app's to define.
 ///
-/// Stays nonisolated so the inherited `Hashable` witnesses work from any
-/// context. Targets that default to `@MainActor` isolation conform as
-/// `enum MyRoute: @MainActor Routable`.
+/// The protocol itself is nonisolated so the inherited `Hashable` witnesses
+/// work from any context. `destination()` alone is main-actor isolated: it
+/// builds views, and usually their view models, and every caller in the
+/// package already runs there. Conformances need no annotation in any
+/// language mode or default isolation.
 public protocol Routable: Hashable {
     associatedtype ViewType: View
-    @ViewBuilder func destination() -> ViewType
+    @MainActor @ViewBuilder func destination() -> ViewType
 }

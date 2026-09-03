@@ -24,7 +24,7 @@ Most SwiftUI routing libraries scope navigation to a single `NavigationStack`. R
 - **NavigationTarget** — route to `.current`, `.parent`, `.root`, or `.deepest` router in a hierarchy
 - **Cross-tab routing** — routers injected via `@Environment`, accessible from any child view
 - **Sheet presentation options** — detents, drag indicator
-- **Configurable dismiss buttons** — show/hide, left/right position, show on pushed views within modals
+- **Configurable dismiss buttons** — chosen per presentation: none, leading or trailing, and on pushed views within modals
 - **Deep linking** — `.onDeepLink` modifier handles both external URLs and internal `openURL` calls
 - **Automatic child router management** — modals get their own router, cleaned up on dismiss
 
@@ -70,6 +70,8 @@ enum HomeRoute: Routable {
 }
 ```
 
+`destination()` is main-actor isolated, so it can build view models as freely as views. Conformances need no annotation in any language mode or default isolation.
+
 ### 2. Wrap your content in RoutingView
 
 ```swift
@@ -77,12 +79,12 @@ struct ContentView: View {
     @State var router = Router<HomeRoute>()
 
     var body: some View {
-        RoutingView(router) { router in
-            router.start(.home)
-        }
+        RoutingView(router, root: .home)
     }
 }
 ```
+
+The closure form, `RoutingView(router) { $0.start(.home) }`, is there for roots that need more than a route.
 
 ### 3. Navigate from any child view
 
@@ -140,7 +142,6 @@ router.present(route: .settings)
 router.present(
     route: .settings,
     navigation: .stack(dismiss: .init(
-        showDismissButton: true,
         dismissButtonPosition: .left,
         showDismissButtonOnPush: true  // show X on views pushed within the modal
     ))
@@ -170,6 +171,11 @@ router.replaceStack(with: [.home, .detail("1"), .detail("2")])
 router.replace(with: .detail("3"))          // swap the top
 router.replace(last: 2, with: .detail("3")) // collapse the last two
 router.lastPathIs(.detail("3")) // true
+
+router.rootDestination        // what the stack was started with
+router.currentDestination     // top of the path, else the root
+router.previousDestination    // what pop() would reveal
+router.currentDestinationIs(.detail("3"))
 ```
 
 ## Router Hierarchy
@@ -342,6 +348,8 @@ router.presentSheet(route: .taskTeam, navigation: .own)
 
 It's a property of the presentation, not of the route type, so the same route can be wrapped in one place and bare in another. `replace` keeps the flag it was opened with — swap only between routes that agree on it.
 
+Sheets inherit the presenting view's environment, so inside `.own` content `@Environment(Router<AppRoute>.self)` is the *presenting* router. `dismissChild()` on it is the router-side close, alongside `@Environment(\.dismiss)`; `dismiss()` there would ask the presenter's own parent.
+
 This is also the shape for presenting a whole split screen: the destination owns a `SplitRouter` and composes the `SplitRoutingView` itself. That wrapper view is not boilerplate — it is the *session scope*: the one place above both columns where objects the columns share can be created, injected, and torn down with the presentation.
 
 ```swift
@@ -388,10 +396,10 @@ struct MainTabView: View {
     var body: some View {
         TabView {
             Tab("Home", systemImage: "house") {
-                RoutingView(homeRouter) { $0.start(.home(.home)) }
+                RoutingView(homeRouter, root: .home(.home))
             }
             Tab("Profile", systemImage: "person") {
-                RoutingView(profileRouter) { $0.start(.profile(.profile)) }
+                RoutingView(profileRouter, root: .profile(.profile))
             }
         }
     }
@@ -439,14 +447,13 @@ TabView(selection: $selectedTab) {
 ## Dismiss Button Options
 
 The presenter chooses the dismiss button for the modal it shows, so pass the
-options when presenting. `.visible` (a leading button) and `.hidden` (none)
-cover the common cases:
+options when presenting. `nil` is no button; `.visible` is a leading one:
 
 ```swift
 // Full-screen cover with dismiss button on the left (.visible is the default)
 router.present(route: .settings)
 
-// Sheet with a dismiss button (sheets default to .hidden — they swipe away)
+// Sheet with a dismiss button (sheets default to nil — they swipe away)
 router.presentSheet(route: .settings, navigation: .stack(dismiss: .visible))
 
 // Dismiss button on the right
@@ -454,10 +461,25 @@ router.present(
     route: .settings,
     navigation: .stack(dismiss: .init(dismissButtonPosition: .right))
 )
+
+// Cover without a button — the content closes itself
+router.present(route: .settings, navigation: .stack(dismiss: nil))
 ```
+
+The options describe a button that is shown — its position, and whether pushed
+views inside the modal get it too. There is no hidden flag, so "no button" has
+one spelling and cannot disagree with on-push settings.
 
 `navigation: .own` carries no dismiss options at all — a destination that owns
 its navigation owns its chrome, and closes itself with `@Environment(\.dismiss)`.
+
+## Migration from 1.x
+
+1. Remove `providesOwnNavigation` from your `Routable` conformances. Where a route needed its own navigation container, pass `navigation: .own` at the `present`/`presentSheet` call site.
+2. `presentSheet(route:dismissOptions:)` and `present(route:dismissOptions:)` became `navigation: .stack(dismiss:)`. `.hidden` is now `nil`; `.visible` is unchanged. Drop `showDismissButton:` from any `DismissButtonPresentationOptions.init` — a button you construct is shown.
+3. `replaceLast(with:)` is `replace(with:)`, and a replace of a presented modal now swaps its content in place instead of re-presenting.
+4. `RoutingView(router) { $0.start(.home) }` still compiles. `RoutingView(router, root: .home)` is the shorter form, and `dismissOptions:` is only needed when you build a `RoutingView` for presented content yourself.
+5. `@MainActor` annotations on `destination()` or `@MainActor Routable` conformances can be removed; the requirement is isolated now.
 
 ## Example App
 

@@ -36,10 +36,9 @@ struct RouterPresentationsModifier<Destination: Routable>: ViewModifier {
         case let .stack(dismiss):
             RoutingView(
                 router.routerFor(routeType: routeType, toShow: item.route),
+                root: item.route,
                 dismissOptions: dismiss
-            ) { childRouter in
-                childRouter.start(item.route)
-            }
+            )
         }
     }
 }

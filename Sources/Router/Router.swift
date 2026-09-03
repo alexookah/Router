@@ -19,6 +19,11 @@ public class Router<Destination: Routable> {
     /// full-screen cover there — setting it directly is a silent no-op.
     public var presentingFullScreenCover: PresentedRoute<Destination>?
 
+    /// The route this router's stack was started with, recorded by
+    /// ``start(_:)``. Follows the latest value, so a conditional root
+    /// (`hasFolders ? .folders : .empty`) stays current.
+    public private(set) var rootDestination: Destination?
+
     // MARK: - Private Hierarchy
 
     @ObservationIgnored
@@ -55,6 +60,20 @@ public class Router<Destination: Routable> {
         child != nil
     }
 
+    /// The visible destination: the top of `path`, else the root.
+    public var currentDestination: Destination? {
+        path.last ?? rootDestination
+    }
+
+    /// What a `pop()` would reveal: beneath the top of `path`, else the root.
+    public var previousDestination: Destination? {
+        path.count > 1 ? path[path.count - 2] : rootDestination
+    }
+
+    public func currentDestinationIs(_ route: Destination) -> Bool {
+        currentDestination == route
+    }
+
     // MARK: - Init
 
     public init(parentRouter: Router<Destination>? = nil) {
@@ -63,9 +82,13 @@ public class Router<Destination: Routable> {
 
     // MARK: - View Handling
 
-    /// Safe to call repeatedly with the same route (SwiftUI may re-render).
+    /// Records `route` as the root and returns its view. Safe to call
+    /// repeatedly (SwiftUI re-renders); only a changed route is written.
     public func start(_ route: Destination) -> Destination.ViewType {
-        route.destination()
+        if rootDestination != route {
+            rootDestination = route
+        }
+        return route.destination()
     }
 
     /// `.push` returns self; `.sheet`/`.fullScreenCover` reuses the child only
@@ -111,7 +134,7 @@ public class Router<Destination: Routable> {
     /// `NavigationStack` / `NavigationSplitView`.
     public func presentSheet(
         route: Destination,
-        navigation: PresentedNavigation<Destination> = .stack(dismiss: .hidden),
+        navigation: PresentedNavigation<Destination> = .stack(dismiss: nil),
         options: SheetPresentationOptions = .init(),
         target: NavigationTarget = .current
     ) {
