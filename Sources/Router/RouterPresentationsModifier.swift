@@ -41,7 +41,7 @@ struct RouterPresentationsModifier<Destination: Routable>: ViewModifier {
     ) -> some View {
         switch item.navigation {
         case .own:
-            let child = router.routerFor(routeType: routeType, toShow: item.route)
+            let child = router.routerFor(routeType: routeType, toShow: item.route, hostsNavigationStack: false)
             child.start(item.route)
                 .routerPresentations(child)
                 .environment(child)

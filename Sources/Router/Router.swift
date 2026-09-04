@@ -12,7 +12,8 @@ public class Router<Destination: Routable> {
         didSet { pushTransitions = pushTransitions.filter { path.contains($0.key) } }
     }
 
-    /// Transitions requested by `push(route:transition:)`, kept while the route is on the path.
+    /// Transitions requested by `push(route:transition:)`, kept while the route
+    /// is on the path. Keyed by route value: equal routes on the path share one.
     public private(set) var pushTransitions: [Destination: PresentationTransition] = [:]
 
     /// Assigning starts a new presentation; `replace(with:)` swaps the
@@ -65,6 +66,10 @@ public class Router<Destination: Routable> {
         child != nil
     }
 
+    /// False for the router of a bare presentation: it hosts sheets and covers
+    /// but no stack, so a `push` on it shows nothing.
+    public private(set) var hasNavigationStack = true
+
     /// The sheet or cover this router is showing, if any.
     public var presented: PresentedRoute<Destination>? {
         presentingSheet ?? presentingFullScreenCover
@@ -108,7 +113,12 @@ public class Router<Destination: Routable> {
 
     /// `.push` returns self; `.sheet`/`.fullScreenCover` reuses the child only
     /// when it already shows `target` (a re-render), otherwise creates a fresh one.
-    public func routerFor(routeType: NavigationType, toShow target: Destination) -> Router {
+    /// `hostsNavigationStack` is false for a bare presentation's child.
+    public func routerFor(
+        routeType: NavigationType,
+        toShow target: Destination,
+        hostsNavigationStack: Bool = true
+    ) -> Router {
         switch routeType {
         case .push:
             return self
@@ -117,6 +127,7 @@ public class Router<Destination: Routable> {
                 return child.router
             }
             let router = Router(parentRouter: self)
+            router.hasNavigationStack = hostsNavigationStack
             child = (router, target)
             return router
         }
@@ -124,15 +135,21 @@ public class Router<Destination: Routable> {
 
     // MARK: - Navigation
 
-    /// `transition` animates the pushed screen, e.g. `.zoom` from a marked source.
+    /// `transition` animates the pushed screen, e.g. `.zoom` from a `zoomSource`.
+    /// On a router without a stack (a bare presentation), presents a sheet
+    /// instead, since there is nothing to push onto.
     public func push(
         route: Destination,
         transition: PresentationTransition? = nil,
         target: NavigationTarget = .current
     ) {
         let router = targetRouter(for: target)
-        if let transition { router.pushTransitions[route] = transition }
-        router.path.append(route)
+        if router.hasNavigationStack {
+            if let transition { router.pushTransitions[route] = transition }
+            router.path.append(route)
+        } else {
+            router.presentSheet(route: route, transition: transition)
+        }
     }
 
     #if os(iOS)

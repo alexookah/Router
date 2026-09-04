@@ -22,6 +22,12 @@ struct HomeView: View {
                 }
             }
 
+            Section("Tab bar") {
+                Button("Push a screen that hides the tab bar") {
+                    router.push(route: .home(.reader))
+                }
+            }
+
             Section("Zoom transition") {
                 Button {
                     router.push(route: .home(.detail("Zoomed")), transition: .zoom(sourceID: "push"))

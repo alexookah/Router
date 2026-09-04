@@ -36,6 +36,16 @@ enum AppRoute: Routable {
         case let .split(route): route.ownsNavigation
         }
     }
+
+    var hidesTabBar: Bool {
+        switch self {
+        case let .home(route): route.hidesTabBar
+        case let .profile(route): route.hidesTabBar
+        case let .stacking(route): route.hidesTabBar
+        case let .deepLinks(route): route.hidesTabBar
+        case let .split(route): route.hidesTabBar
+        }
+    }
 }
 
 typealias AppRouter = Router<AppRoute>
@@ -50,6 +60,7 @@ enum HomeRoute: Routable {
     case swap(Int)
     case share(URL)
     case photoPicker
+    case reader
 
     func destination() -> some View {
         switch self {
@@ -59,6 +70,7 @@ enum HomeRoute: Routable {
         case let .swap(step): SwapDemoView(step: step)
         case let .share(url): ShareSheetView(items: [url])
         case .photoPicker: PhotoPickerView()
+        case .reader: ReaderView()
         }
     }
 
@@ -68,6 +80,11 @@ enum HomeRoute: Routable {
         case .share, .photoPicker: true
         default: false
         }
+    }
+
+    /// Full-height reading: the tab bar goes while it is on top.
+    var hidesTabBar: Bool {
+        if case .reader = self { true } else { false }
     }
 }
 

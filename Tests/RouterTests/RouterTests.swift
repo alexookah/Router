@@ -27,6 +27,7 @@ enum TestRoute: Routable {
     }
 
     var ownsNavigation: Bool { self == .share }
+    var hidesTabBar: Bool { self == .profile }
 }
 
 // MARK: - Initialization
@@ -832,6 +833,19 @@ struct ReplaceInPlaceTests {
         #expect(!router.isPresenting)
     }
 
+    /// The container follows the replacement route: a bare route swapped in
+    /// over a stack presentation goes up bare, and the dismiss options carry over.
+    @MainActor
+    @Test func replacementFollowsTheNewRoutesNavigation() {
+        let router = Router<TestRoute>()
+        router.presentSheet(route: .home, dismiss: .visible)
+        router.replacePresented(with: .share)
+        #expect(router.presentingSheet?.navigation == .own)
+
+        router.replacePresented(with: .settings)
+        #expect(router.presentingSheet?.navigation == .stack(dismiss: nil), "own content carries no dismiss options forward")
+    }
+
     /// The replacement route gets a fresh child router — the old modal's
     /// stack must not leak into the new content.
     @MainActor
@@ -926,6 +940,13 @@ struct RootDestinationTests {
 @Suite("Route-level navigation default")
 struct OwnsNavigationTests {
     @MainActor
+    @Test func routeFlagsDefaultToFalse() {
+        #expect(!TestRoute.settings.ownsNavigation)
+        #expect(!TestRoute.settings.hidesTabBar)
+        #expect(TestRoute.profile.hidesTabBar)
+    }
+
+    @MainActor
     @Test func routesDefaultToAStack() {
         let router = Router<TestRoute>()
         router.presentSheet(route: .settings)
@@ -942,6 +963,20 @@ struct OwnsNavigationTests {
         router.present(route: .share)
         #expect(router.presentingFullScreenCover?.navigation == .own)
         #endif
+    }
+
+    @MainActor
+    @Test func bareChildrenHostNoStack() {
+        let router = Router<TestRoute>()
+        #expect(router.hasNavigationStack)
+        router.presentSheet(route: .share)
+        let bare = router.routerFor(routeType: .sheet, toShow: .share, hostsNavigationStack: false)
+        #expect(!bare.hasNavigationStack)
+        #expect(!router.deepestRouter.hasNavigationStack)
+
+        router.push(route: .settings, target: .deepest)
+        #expect(bare.path.isEmpty)
+        #expect(bare.presentingSheet?.route == .settings, "a push onto a bare presentation presents a sheet instead")
     }
 
     @MainActor
@@ -965,18 +1000,6 @@ struct OwnsNavigationTests {
 @Suite("Transitions")
 struct TransitionTests {
     @MainActor
-    @Test func presentationsKeepTheirTransition() {
-        let router = Router<TestRoute>()
-        let transition = PresentationTransition.zoom(sourceID: "card")
-        router.presentSheet(route: .settings, transition: transition)
-        #expect(router.presentingSheet?.transition == transition)
-
-        let child = router.routerFor(routeType: .sheet, toShow: .settings)
-        child.replace(with: .profile)
-        #expect(router.presentingSheet?.transition == transition, "replace keeps the presentation's transition")
-    }
-
-    @MainActor
     @Test func pushTransitionsLiveWithThePath() {
         let router = Router<TestRoute>()
         let transition = PresentationTransition.zoom(sourceID: "card")
@@ -988,4 +1011,17 @@ struct TransitionTests {
         router.popToRoot()
         #expect(router.pushTransitions.isEmpty)
     }
+
+    @MainActor
+    @Test func presentationsKeepTheirTransition() {
+        let router = Router<TestRoute>()
+        let transition = PresentationTransition.zoom(sourceID: "card")
+        router.presentSheet(route: .settings, transition: transition)
+        #expect(router.presentingSheet?.transition == transition)
+
+        let child = router.routerFor(routeType: .sheet, toShow: .settings)
+        child.replace(with: .profile)
+        #expect(router.presentingSheet?.transition == transition, "replace keeps the presentation's transition")
+    }
+
 }

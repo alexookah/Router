@@ -6,6 +6,7 @@ public struct RoutingView<Content: View, Destination: Routable>: View
     @Bindable var router: Router<Destination>
     private let rootContent: (Router<Destination>) -> Content
     @Namespace private var transitions
+    @State private var hideTabBar = false
 
     /// The dismiss button for this stack, or `nil` for none. Set by
     /// `RouterPresentationsModifier` for the content it presents; a
@@ -60,6 +61,14 @@ public struct RoutingView<Content: View, Destination: Routable>: View
                             }
                         }
                 }
+        }
+        #if os(iOS)
+        .toolbar(hideTabBar ? .hidden : .visible, for: .tabBar)
+        #endif
+        .onChange(of: router.path) { _, path in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                hideTabBar = path.last?.hidesTabBar ?? false
+            }
         }
         .modifier(RouterPresentationsModifier(router: router, namespace: transitions))
         .environment(\.transitionNamespace, transitions)

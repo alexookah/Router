@@ -26,7 +26,7 @@ public struct PresentedRoute<Destination: Routable>: Identifiable, Equatable {
     public var route: Destination
     /// Fixed for the presentation — `replace` keeps it; swap only between
     /// routes that agree on it.
-    public let navigation: PresentedNavigation<Destination>
+    public private(set) var navigation: PresentedNavigation<Destination>
     public let sheetOptions: SheetPresentationOptions
     public let transition: PresentationTransition?
 
@@ -44,10 +44,12 @@ public struct PresentedRoute<Destination: Routable>: Identifiable, Equatable {
         self.transition = transition
     }
 
-    /// A copy showing `route` under the same identity.
+    /// A copy showing `route` under the same identity. The container follows
+    /// the new route's `ownsNavigation`; the dismiss button carries over.
     func replacing(_ route: Destination) -> Self {
         var copy = self
         copy.route = route
+        copy.navigation = route.ownsNavigation ? .own : .stack(dismiss: navigation.dismissOptions)
         return copy
     }
 }

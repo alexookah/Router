@@ -25,6 +25,8 @@ Most SwiftUI routing libraries scope navigation to a single `NavigationStack`. R
 - **NavigationTarget** — route to `.current`, `.parent`, `.root`, or `.deepest` router in a hierarchy
 - **Cross-tab routing** — routers injected via `@Environment`, accessible from any child view
 - **Sheet presentation options** — detents, drag indicator, interactive dismiss
+- **Push falls back to a sheet on bare presentations** — a bare presentation hosts no stack, so `push` on its router (for example via `target: .deepest`) presents a sheet instead of showing nothing
+- **Tab bar hiding** — a route declaring `hidesTabBar` hides the tab bar while it is on top of a pushed stack
 - **Zoom transitions** — a push, sheet, or cover zooms out of the view that opened it: `zoomSource(id:)` on the source, `transition: .zoom(sourceID:)` on the call
 - **Configurable dismiss buttons** — chosen per presentation: none, leading or trailing, and on pushed views within modals
 - **Deep linking** — `.onDeepLink` modifier handles both external URLs and internal `openURL` calls
@@ -194,7 +196,7 @@ router.present(route: .photo(id), transition: .zoom(sourceID: id))
 router.presentSheet(route: .photo(id), transition: .zoom(sourceID: id))
 ```
 
-Pushes, sheets, and covers zoom from iOS 18; earlier systems ignore the transition. A presentation keeps its transition through `replace`; a push keeps it while the route is on the path. The source must sit inside the `RoutingView` (or `routerPresentations`) that shows the destination.
+Zooms work from iOS 18; earlier systems ignore them. A presentation keeps its transition through `replace`; a push keeps it while the route is on the path. Push transitions are keyed by route value, so two equal routes on the path share one. The source must sit inside the `RoutingView` (or `routerPresentations`) that shows the destination.
 
 ## Router Hierarchy
 
@@ -514,7 +516,7 @@ and closes itself with its own control, `router.dismiss()`, or
 
 The `ExampleRouterDemo` Xcode project demonstrates all features with a 5-tab app:
 
-- **Home** — push navigation, full-screen covers, zoom transitions from a row, cross-tab routing, UIKit controllers (share sheet, photo picker) presented bare via `ownsNavigation`, and a sheet whose content you can swap two ways: `replace` (same identity, keeps the sheet and its detent) or re-present (a new sheet) — the presented controller's address shows which
+- **Home** — push navigation, full-screen covers, a pushed screen that hides the tab bar via `hidesTabBar`, zoom transitions from a row, cross-tab routing, UIKit controllers (share sheet, photo picker) presented bare via `ownsNavigation`, and a sheet whose content you can swap two ways: `replace` (same identity, keeps the sheet and its detent) or re-present (a new sheet) — the presented controller's address shows which
 - **Stacking** — present sheets on top of sheets using `target: .deepest`, dismiss all with `dismissAllFromRoot()`
 - **Profile** — full-screen cover with dismiss button positioning
 - **Split** — `SplitRoutingView` with a button per `SplitRouter` API: column pushes, sheets and covers from either column, and `popAllToRoot()`. Run it on iPad and on iPhone to see that a column's presentations work in both layouts

@@ -8,17 +8,10 @@ public enum PresentationTransition: Equatable {
     case zoom(sourceID: AnyHashable)
 }
 
-/// The namespace a `RoutingView` (or `routerPresentations`) shares between
-/// zoom sources inside it and the screens it pushes or presents.
-struct TransitionNamespaceKey: EnvironmentKey {
-    static let defaultValue: Namespace.ID? = nil
-}
-
 extension EnvironmentValues {
-    var transitionNamespace: Namespace.ID? {
-        get { self[TransitionNamespaceKey.self] }
-        set { self[TransitionNamespaceKey.self] = newValue }
-    }
+    /// The namespace a `RoutingView` (or `routerPresentations`) shares between
+    /// zoom sources inside it and the screens it pushes or presents.
+    @Entry var transitionNamespace: Namespace.ID?
 }
 
 extension View {
@@ -57,10 +50,10 @@ private struct ZoomSourceModifier: ViewModifier {
 }
 
 public extension View {
-    /// Marks this view as the source a `transition: .zoom(sourceID: id)` push
-    /// or presentation zooms out of. Must sit inside the `RoutingView` (or
-    /// `routerPresentations`) that shows the destination.
+    /// Marks this view as the source a zoom transition starts from. Must sit
+    /// inside the `RoutingView` (or `routerPresentations`) that shows the destination.
     func zoomSource(id: some Hashable) -> some View {
         modifier(ZoomSourceModifier(id: AnyHashable(id)))
     }
+
 }

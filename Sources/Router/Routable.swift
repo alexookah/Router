@@ -19,8 +19,12 @@ public protocol Routable: Hashable {
     /// Whether the destination brings its own navigation container (a stack, a
     /// split view, or a UIKit controller with its own bar); if so it is presented bare.
     var ownsNavigation: Bool { get }
+
+    /// Whether the tab bar hides while this route is on top of a pushed stack.
+    var hidesTabBar: Bool { get }
 }
 
 public extension Routable {
     var ownsNavigation: Bool { false }
+    var hidesTabBar: Bool { false }
 }
