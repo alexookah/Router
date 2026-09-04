@@ -503,11 +503,12 @@ and closes itself with its own control, `router.dismiss()`, or
 
 ## Migration from 1.x
 
-1. Rename `providesOwnNavigation` to `ownsNavigation` on your `Routable` conformances; a wrapper enum forwards it to its child route.
-2. `presentSheet(route:dismissOptions:)` and `present(route:dismissOptions:)` became `dismiss:`. `.hidden` is now `nil`; `.visible` is unchanged. Drop `showDismissButton:` from any `DismissButtonPresentationOptions.init` — a button you construct is shown.
-3. `replaceLast(with:)` is `replace(with:)`, and a replace of a presented modal now swaps its content in place instead of re-presenting.
-4. `RoutingView(router) { $0.start(.home) }` still compiles. `RoutingView(router, root: .home)` is the shorter form, and `dismissOptions:` is only needed when you build a `RoutingView` for presented content yourself.
-5. `@MainActor` annotations on `destination()` or `@MainActor Routable` conformances can be removed; the requirement is isolated now.
+1. `present(route:dismissOptions:)` and `presentSheet(route:options:dismissOptions:)` became `present(route:dismiss:)` and `presentSheet(route:dismiss:options:)`. `.sheetDismissOptions` is the default `nil`, `.fullScreenDismissOptions` is the default `.visible`, and `showDismissButton: false` is `nil`.
+2. `replaceLast(with:)` is `replace(with:)`; replacing a presented modal now swaps its content in place.
+3. `presentingSheet` and `presentingFullScreenCover` hold a `PresentedRoute`; read `presentingSheet?.route` where you read the route before.
+4. `Routable` no longer requires `Identifiable`, and its default `id` is gone; define one if your code used `route.id`.
+5. A route that builds its own navigation container, or wraps a UIKit controller with its own bar, declares `ownsNavigation`; it is presented without a `RoutingView`.
+6. `RoutingView(router) { $0.start(.home) }` still compiles; `RoutingView(router, root: .home)` is the shorter form.
 
 ## Example App
 
