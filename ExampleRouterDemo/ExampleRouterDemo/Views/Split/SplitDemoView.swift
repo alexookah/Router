@@ -19,7 +19,7 @@ struct SplitDemoView: View {
 
 /// A whole split screen presented as a modal: the destination owns the
 /// `SplitRouter` and composes the `SplitRoutingView` itself, presented with
-/// `navigation: .own`. Anything the columns share — session objects, a
+/// a route that owns its navigation (`SplitRoute.nestedSplit`). Anything the columns share — session objects, a
 /// coordinator — would be created here and injected around the split.
 struct NestedSplitDemoView: View {
     @Environment(\.dismiss) private var dismiss
@@ -129,7 +129,7 @@ struct SplitOverviewView: View {
                     // A presented split is composed by the destination: it
                     // owns the SplitRouter, so state shared by the columns
                     // has a home. See `NestedSplitDemoView`.
-                    router.present(route: .split(.nestedSplit), navigation: .own)
+                    router.present(route: .split(.nestedSplit))
                 }
                 #endif
                 Button("Stack two with target: .deepest") {

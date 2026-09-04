@@ -15,4 +15,12 @@ import SwiftUI
 public protocol Routable: Hashable {
     associatedtype ViewType: View
     @MainActor @ViewBuilder func destination() -> ViewType
+
+    /// Whether the destination brings its own navigation container (a stack, a
+    /// split view, or a UIKit controller with its own bar); if so it is presented bare.
+    var ownsNavigation: Bool { get }
+}
+
+public extension Routable {
+    var ownsNavigation: Bool { false }
 }

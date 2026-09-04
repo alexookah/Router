@@ -9,6 +9,7 @@ enum TestRoute: Routable {
     case detail(String)
     case settings
     case profile
+    case share
 
     func destination() -> some View {
         switch self {
@@ -20,8 +21,12 @@ enum TestRoute: Routable {
             Text("Settings")
         case .profile:
             Text("Profile")
+        case .share:
+            Text("Share")
         }
     }
+
+    var ownsNavigation: Bool { self == .share }
 }
 
 // MARK: - Initialization
@@ -216,7 +221,7 @@ struct SheetPresentationTests {
         let router = Router<TestRoute>()
         router.presentSheet(
             route: .settings,
-            navigation: .stack(dismiss: .init(dismissButtonPosition: .right))
+            dismiss: .init(dismissButtonPosition: .right)
         )
         #expect(router.presentingSheet?.navigation.dismissOptions != nil)
         #expect(router.presentingSheet?.navigation.dismissOptions?.dismissButtonPosition == .right)
@@ -225,9 +230,10 @@ struct SheetPresentationTests {
     @MainActor
     @Test func presentSheetWithOptions() {
         let router = Router<TestRoute>()
-        let options = SheetPresentationOptions(detents: [.medium], dragIndicator: .hidden)
+        let options = SheetPresentationOptions(detents: [.medium], dragIndicator: .hidden, isInteractiveDismissDisabled: true)
         router.presentSheet(route: .settings, options: options)
         #expect(router.presentingSheet?.sheetOptions == options)
+        #expect(router.presentingSheet?.sheetOptions.isInteractiveDismissDisabled == true)
     }
 }
 
@@ -543,7 +549,7 @@ struct PresentationDismissOptionsTests {
         let router = Router<TestRoute>()
         router.presentSheet(
             route: .settings,
-            navigation: .stack(dismiss: .init(showDismissButtonOnPush: true))
+            dismiss: .init(showDismissButtonOnPush: true)
         )
         #expect(router.presentingSheet?.navigation.dismissOptions != nil)
         #expect(router.presentingSheet?.navigation.dismissOptions?.showDismissButtonOnPush == true)
@@ -559,9 +565,9 @@ struct PresentationDismissOptionsTests {
         #expect(router.presentingSheet?.navigation == .stack(dismiss: nil))
         #expect(router.presentingSheet?.navigation.dismissOptions == nil)
 
-        router.presentSheet(route: .settings, navigation: .own)
+        router.presentSheet(route: .share, dismiss: .visible)
         #expect(router.presentingSheet?.navigation == .own)
-        #expect(router.presentingSheet?.navigation.dismissOptions == nil)
+        #expect(router.presentingSheet?.navigation.dismissOptions == nil, "a route that owns its navigation has no bar for a button")
     }
 
 
@@ -912,5 +918,74 @@ struct RootDestinationTests {
         _ = RoutingView(router, root: .home)
         _ = RoutingView(router, root: .home, dismissOptions: .visible)
         #expect(router.isFullyAtRoot)
+    }
+}
+
+// MARK: - Route-level navigation default
+
+@Suite("Route-level navigation default")
+struct OwnsNavigationTests {
+    @MainActor
+    @Test func routesDefaultToAStack() {
+        let router = Router<TestRoute>()
+        router.presentSheet(route: .settings)
+        #expect(router.presentingSheet?.navigation == .stack(dismiss: nil))
+        #expect(!TestRoute.settings.ownsNavigation)
+    }
+
+    @MainActor
+    @Test func aRouteThatOwnsNavigationPresentsBare() {
+        let router = Router<TestRoute>()
+        router.presentSheet(route: .share)
+        #expect(router.presentingSheet?.navigation == .own)
+        #if os(iOS)
+        router.present(route: .share)
+        #expect(router.presentingFullScreenCover?.navigation == .own)
+        #endif
+    }
+
+    @MainActor
+    @Test func presentedAndDeepestRouter() {
+        let root = Router<TestRoute>()
+        #expect(root.presented == nil)
+        #expect(root.deepestRouter === root)
+        root.presentSheet(route: .settings)
+        let child = root.routerFor(routeType: .sheet, toShow: .settings)
+        #expect(root.presented?.route == .settings)
+        #expect(root.deepestRouter === child)
+        child.presentSheet(route: .share)
+        let grandchild = child.routerFor(routeType: .sheet, toShow: .share)
+        #expect(child.presented?.route == .share)
+        #expect(root.deepestRouter === grandchild, ".own content gets a child router like any presentation")
+    }
+}
+
+// MARK: - Transitions
+
+@Suite("Transitions")
+struct TransitionTests {
+    @MainActor
+    @Test func presentationsKeepTheirTransition() {
+        let router = Router<TestRoute>()
+        let transition = PresentationTransition.zoom(sourceID: "card")
+        router.presentSheet(route: .settings, transition: transition)
+        #expect(router.presentingSheet?.transition == transition)
+
+        let child = router.routerFor(routeType: .sheet, toShow: .settings)
+        child.replace(with: .profile)
+        #expect(router.presentingSheet?.transition == transition, "replace keeps the presentation's transition")
+    }
+
+    @MainActor
+    @Test func pushTransitionsLiveWithThePath() {
+        let router = Router<TestRoute>()
+        let transition = PresentationTransition.zoom(sourceID: "card")
+        router.push(route: .detail("1"), transition: transition)
+        router.push(route: .settings)
+        #expect(router.pushTransitions[.detail("1")] == transition)
+        #expect(router.pushTransitions[.settings] == nil)
+
+        router.popToRoot()
+        #expect(router.pushTransitions.isEmpty)
     }
 }

@@ -26,6 +26,16 @@ enum AppRoute: Routable {
         case let .split(route): route.destination()
         }
     }
+
+    var ownsNavigation: Bool {
+        switch self {
+        case let .home(route): route.ownsNavigation
+        case let .profile(route): route.ownsNavigation
+        case let .stacking(route): route.ownsNavigation
+        case let .deepLinks(route): route.ownsNavigation
+        case let .split(route): route.ownsNavigation
+        }
+    }
 }
 
 typealias AppRouter = Router<AppRoute>
@@ -37,12 +47,26 @@ enum HomeRoute: Routable {
     case home
     case detail(String)
     case settings
+    case swap(Int)
+    case share(URL)
+    case photoPicker
 
     func destination() -> some View {
         switch self {
         case .home: HomeView()
         case let .detail(id): DetailView(id: id)
         case .settings: SettingsView()
+        case let .swap(step): SwapDemoView(step: step)
+        case let .share(url): ShareSheetView(items: [url])
+        case .photoPicker: PhotoPickerView()
+        }
+    }
+
+    /// UIKit controllers that bring their own bar are presented bare.
+    var ownsNavigation: Bool {
+        switch self {
+        case .share, .photoPicker: true
+        default: false
         }
     }
 }
@@ -109,5 +133,10 @@ enum SplitRoute: Routable {
         case .nestedSplit:
             NestedSplitDemoView()
         }
+    }
+
+    /// The nested split composes its own `SplitRoutingView`.
+    var ownsNavigation: Bool {
+        if case .nestedSplit = self { true } else { false }
     }
 }

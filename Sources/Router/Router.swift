@@ -8,7 +8,12 @@ public class Router<Destination: Routable> {
 
     // MARK: - Public State
 
-    public var path: [Destination] = []
+    public var path: [Destination] = [] {
+        didSet { pushTransitions = pushTransitions.filter { path.contains($0.key) } }
+    }
+
+    /// Transitions requested by `push(route:transition:)`, kept while the route is on the path.
+    public private(set) var pushTransitions: [Destination: PresentationTransition] = [:]
 
     /// Assigning starts a new presentation; `replace(with:)` swaps the
     /// current one's content while keeping its identity.
@@ -60,6 +65,16 @@ public class Router<Destination: Routable> {
         child != nil
     }
 
+    /// The sheet or cover this router is showing, if any.
+    public var presented: PresentedRoute<Destination>? {
+        presentingSheet ?? presentingFullScreenCover
+    }
+
+    /// The furthest child in the hierarchy — what `NavigationTarget.deepest` resolves to.
+    public var deepestRouter: Router {
+        deepestChildRouter ?? self
+    }
+
     /// The visible destination: the top of `path`, else the root.
     public var currentDestination: Destination? {
         path.last ?? rootDestination
@@ -109,42 +124,44 @@ public class Router<Destination: Routable> {
 
     // MARK: - Navigation
 
-    public func push(route: Destination, target: NavigationTarget = .current) {
+    /// `transition` animates the pushed screen, e.g. `.zoom` from a marked source.
+    public func push(
+        route: Destination,
+        transition: PresentationTransition? = nil,
+        target: NavigationTarget = .current
+    ) {
         let router = targetRouter(for: target)
+        if let transition { router.pushTransitions[route] = transition }
         router.path.append(route)
     }
 
     #if os(iOS)
     /// iOS only — macOS has no full-screen cover; use `presentSheet(...)`.
     ///
-    /// Pass `navigation: .own` when the destination builds its own
-    /// `NavigationStack` / `NavigationSplitView`.
+    /// `dismiss` is the cover's button, leading by default; `nil` for none.
     public func present(
         route: Destination,
-        navigation: PresentedNavigation<Destination> = .stack(dismiss: .visible),
+        dismiss: DismissButtonPresentationOptions? = .visible,
+        transition: PresentationTransition? = nil,
         target: NavigationTarget = .current
     ) {
         let router = targetRouter(for: target)
         router.presentingSheet = nil
-        router.presentingFullScreenCover = PresentedRoute(route, navigation: navigation)
+        router.presentingFullScreenCover = PresentedRoute(route, dismiss: dismiss, transition: transition)
     }
     #endif
 
-    /// Pass `navigation: .own` when the destination builds its own
-    /// `NavigationStack` / `NavigationSplitView`.
+    /// `dismiss` is the sheet's button, none by default.
     public func presentSheet(
         route: Destination,
-        navigation: PresentedNavigation<Destination> = .stack(dismiss: nil),
+        dismiss: DismissButtonPresentationOptions? = nil,
         options: SheetPresentationOptions = .init(),
+        transition: PresentationTransition? = nil,
         target: NavigationTarget = .current
     ) {
         let router = targetRouter(for: target)
         router.presentingFullScreenCover = nil
-        router.presentingSheet = PresentedRoute(
-            route,
-            navigation: navigation,
-            sheetOptions: options
-        )
+        router.presentingSheet = PresentedRoute(route, dismiss: dismiss, sheetOptions: options, transition: transition)
     }
 
     public func pop(last count: Int = 1) {
@@ -244,7 +261,7 @@ public class Router<Destination: Routable> {
         case .parent: parentRouter ?? self
         case .child: child?.router ?? self
         case .root: rootRouter
-        case .deepest: deepestChildRouter ?? self
+        case .deepest: deepestRouter
         }
     }
 

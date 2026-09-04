@@ -3,13 +3,16 @@ import SwiftUI
 public struct SheetPresentationOptions: Equatable {
     public var detents: Set<PresentationDetent>?
     public var dragIndicator: Visibility
+    public var isInteractiveDismissDisabled: Bool
 
     public init(
         detents: Set<PresentationDetent>? = nil,
-        dragIndicator: Visibility = .automatic
+        dragIndicator: Visibility = .automatic,
+        isInteractiveDismissDisabled: Bool = false
     ) {
         self.detents = detents
         self.dragIndicator = dragIndicator
+        self.isInteractiveDismissDisabled = isInteractiveDismissDisabled
     }
 }
 

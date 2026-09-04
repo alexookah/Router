@@ -22,7 +22,7 @@ struct ProfileView: View {
                 Button("Edit Profile (Full Screen)") {
                     router.present(
                         route: .profile(.editProfile),
-                        navigation: .stack(dismiss: .init(dismissButtonPosition: .right))
+                        dismiss: .init(dismissButtonPosition: .right)
                     )
                 }
             }

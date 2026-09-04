@@ -8,19 +8,28 @@ import SwiftUI
 /// (a `NavigationSplitView`, `TabView`, or externally driven stack).
 struct RouterPresentationsModifier<Destination: Routable>: ViewModifier {
     @Bindable var router: Router<Destination>
+    /// Shared with the hosting `RoutingView`; a standalone modifier owns one.
+    var namespace: Namespace.ID?
+    @Namespace private var ownNamespace
+
+    private var transitions: Namespace.ID { namespace ?? ownNamespace }
 
     func body(content: Content) -> some View {
         content
+            .environment(\.transitionNamespace, transitions)
             .sheet(item: $router.presentingSheet, onDismiss: router.onPresentationDismissed) { item in
                 presentedContent(for: item, as: .sheet)
+                    .presentationTransition(item.transition, in: transitions)
                     .ifLet(item.sheetOptions.detents) { view, detents in
                         view.presentationDetents(detents)
                     }
                     .presentationDragIndicator(item.sheetOptions.dragIndicator)
+                    .interactiveDismissDisabled(item.sheetOptions.isInteractiveDismissDisabled)
             }
             #if os(iOS)
             .fullScreenCover(item: $router.presentingFullScreenCover, onDismiss: router.onPresentationDismissed) { item in
                 presentedContent(for: item, as: .fullScreenCover)
+                    .presentationTransition(item.transition, in: transitions)
             }
             #endif
     }
@@ -32,7 +41,10 @@ struct RouterPresentationsModifier<Destination: Routable>: ViewModifier {
     ) -> some View {
         switch item.navigation {
         case .own:
-            item.route.destination()
+            let child = router.routerFor(routeType: routeType, toShow: item.route)
+            child.start(item.route)
+                .routerPresentations(child)
+                .environment(child)
         case let .stack(dismiss):
             RoutingView(
                 router.routerFor(routeType: routeType, toShow: item.route),

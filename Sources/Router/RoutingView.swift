@@ -5,6 +5,7 @@ public struct RoutingView<Content: View, Destination: Routable>: View
 {
     @Bindable var router: Router<Destination>
     private let rootContent: (Router<Destination>) -> Content
+    @Namespace private var transitions
 
     /// The dismiss button for this stack, or `nil` for none. Set by
     /// `RouterPresentationsModifier` for the content it presents; a
@@ -49,6 +50,7 @@ public struct RoutingView<Content: View, Destination: Routable>: View
                 }
                 .navigationDestination(for: Destination.self) { route in
                     route.destination()
+                        .presentationTransition(router.pushTransitions[route], in: transitions)
                         .ifLet(pushDismissOptions) { view, options in
                             view.toolbar {
                                 DismissToolbar(
@@ -59,7 +61,8 @@ public struct RoutingView<Content: View, Destination: Routable>: View
                         }
                 }
         }
-        .modifier(RouterPresentationsModifier(router: router))
+        .modifier(RouterPresentationsModifier(router: router, namespace: transitions))
+        .environment(\.transitionNamespace, transitions)
         .environment(router)
     }
 }

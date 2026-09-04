@@ -1,26 +1,16 @@
 import SwiftUI
 
-/// Who supplies the navigation container for a presented route.
-///
-/// Only ``stack(dismiss:)`` carries dismiss options: ``own`` content owns its
-/// chrome and closes itself.
+/// Who supplies the navigation container for a presented route, decided by
+/// the route's `ownsNavigation`.
 public enum PresentedNavigation<Destination: Routable>: Equatable {
     /// The router wraps the destination in a `RoutingView`, so it can push and
     /// present further. `dismiss` configures the dismiss button; `nil` shows none.
     case stack(dismiss: DismissButtonPresentationOptions?)
-    /// The destination builds its own navigation container and is presented
-    /// as-is, with no child router. Also the shape for presented split
-    /// screens: the destination owns a ``SplitRouter`` and composes a
-    /// ``SplitRoutingView``, which is where any state shared by the columns
-    /// lives.
-    ///
-    /// Sheets inherit the presenting view's environment, so inside the content
-    /// `@Environment(Router.self)` is the *presenting* router: `dismissChild()`
-    /// on it is the router-side close, alongside `@Environment(\.dismiss)`.
+    /// Presented without a `RoutingView`, but with a child router hosting its
+    /// sheets and covers. Also the shape for presented split screens.
     case own
 
-    /// The dismiss button configuration, or `nil` when there is no button —
-    /// a stack presented without one, or content that owns its navigation.
+    /// The dismiss button for a `.stack` presentation; `nil` for none, and always for `.own`.
     public var dismissOptions: DismissButtonPresentationOptions? {
         if case let .stack(dismiss) = self { dismiss } else { nil }
     }
@@ -38,16 +28,20 @@ public struct PresentedRoute<Destination: Routable>: Identifiable, Equatable {
     /// routes that agree on it.
     public let navigation: PresentedNavigation<Destination>
     public let sheetOptions: SheetPresentationOptions
+    public let transition: PresentationTransition?
 
+    /// `dismiss` is ignored for a route that owns its navigation.
     public init(
         _ route: Destination,
-        navigation: PresentedNavigation<Destination> = .stack(dismiss: nil),
-        sheetOptions: SheetPresentationOptions = .init()
+        dismiss: DismissButtonPresentationOptions? = nil,
+        sheetOptions: SheetPresentationOptions = .init(),
+        transition: PresentationTransition? = nil
     ) {
         self.id = route
         self.route = route
-        self.navigation = navigation
+        self.navigation = route.ownsNavigation ? .own : .stack(dismiss: dismiss)
         self.sheetOptions = sheetOptions
+        self.transition = transition
     }
 
     /// A copy showing `route` under the same identity.

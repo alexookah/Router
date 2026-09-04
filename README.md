@@ -21,9 +21,11 @@ Most SwiftUI routing libraries scope navigation to a single `NavigationStack`. R
 - **Push, sheet, and full-screen cover** navigation with one generic `Router<Destination>`
 - **NavigationSplitView support** — `SplitRouter` is a `Router` driving the detail column, with `sidebar` a full `Router` for the other, so both columns take the same verbs. It owns the split view's layout state and reports `isCollapsed` for compact width
 - **Presentation without a stack** — `.routerPresentations(_:)` hosts router-driven modals on any view that already has navigation above it
+- **Destinations that own their navigation** — a route declaring `ownsNavigation` is presented bare, without a `RoutingView`: split screens, views with their own `NavigationStack`, UIKit controllers
 - **NavigationTarget** — route to `.current`, `.parent`, `.root`, or `.deepest` router in a hierarchy
 - **Cross-tab routing** — routers injected via `@Environment`, accessible from any child view
-- **Sheet presentation options** — detents, drag indicator
+- **Sheet presentation options** — detents, drag indicator, interactive dismiss
+- **Zoom transitions** — a push, sheet, or cover zooms out of the view that opened it: `zoomSource(id:)` on the source, `transition: .zoom(sourceID:)` on the call
 - **Configurable dismiss buttons** — chosen per presentation: none, leading or trailing, and on pushed views within modals
 - **Deep linking** — `.onDeepLink` modifier handles both external URLs and internal `openURL` calls
 - **Automatic child router management** — modals get their own router, cleaned up on dismiss
@@ -128,7 +130,7 @@ router.push(route: .detail("123"), target: .root) // push on root router
 router.presentSheet(route: .settings)
 router.presentSheet(
     route: .settings,
-    navigation: .stack(dismiss: .visible),
+    dismiss: .visible,
     options: .init(detents: [.medium, .large], dragIndicator: .visible)
 )
 ```
@@ -141,14 +143,14 @@ router.presentSheet(
 router.present(route: .settings)
 router.present(
     route: .settings,
-    navigation: .stack(dismiss: .init(
+    dismiss: .init(
         dismissButtonPosition: .left,
         showDismissButtonOnPush: true  // show X on views pushed within the modal
-    ))
+    )
 )
 
-// A destination that builds its own NavigationStack / NavigationSplitView
-router.present(route: .workspace, navigation: .own)
+// A route whose `ownsNavigation` is true goes up bare, no RoutingView around it
+router.present(route: .workspace)
 ```
 
 ### Pop & Dismiss
@@ -177,6 +179,22 @@ router.currentDestination     // top of the path, else the root
 router.previousDestination    // what pop() would reveal
 router.currentDestinationIs(.detail("3"))
 ```
+
+### Transitions
+
+A push, sheet, or cover can zoom out of the view that opened it. Mark the source with `zoomSource(id:)` and pass `.zoom` with the same id; the `RoutingView` supplies the namespace both ends share:
+
+```swift
+Button { router.push(route: .detail("42"), transition: .zoom(sourceID: "card")) } label: {
+    CardLabel()
+}
+.zoomSource(id: "card")
+
+router.present(route: .photo(id), transition: .zoom(sourceID: id))
+router.presentSheet(route: .photo(id), transition: .zoom(sourceID: id))
+```
+
+Pushes and covers zoom from iOS 18, sheets from iOS 26; earlier systems ignore the transition. A presentation keeps its transition through `replace`; a push keeps it while the route is on the path. The source must sit inside the `RoutingView` (or `routerPresentations`) that shows the destination.
 
 ## Router Hierarchy
 
@@ -318,7 +336,6 @@ Only one modal is on screen at a time regardless: UIKit presents one per view-co
 >
 > Also note a column reports **its own** width: an iPad sidebar is narrow enough to report `horizontalSizeClass == .compact` while the split view is showing both panes. Read the size class outside the split view if you need the window's.
 
-
 ### Presenting from containers without a stack
 
 `RoutingView` bundles a `NavigationStack` with modal hosting. When the presenting view already sits inside navigation — a subview deep in a column, a `TabView`, a hand-rolled split view — attach just the modal hosting:
@@ -339,16 +356,29 @@ photoRouter.present(route: .camera(partId: id))
 
 ### Destinations that own their navigation
 
-Presented routes are normally wrapped in a `RoutingView` so they can push and present further. If a destination *is* a navigation container (a `NavigationSplitView`, or a view that builds its own `NavigationStack`), present it with `navigation: .own` and it goes up as-is:
+Presented routes are normally wrapped in a `RoutingView` so they can push and present further. If a destination *is* a navigation container (a `NavigationSplitView`, or a view that builds its own `NavigationStack`), its route says so with `ownsNavigation`, and the router presents it as-is:
 
 ```swift
-router.present(route: .fullScreenWorkspace, navigation: .own)
-router.presentSheet(route: .taskTeam, navigation: .own)
+enum AppRoute: Routable {
+    var ownsNavigation: Bool {
+        switch self {
+        case .fullScreenWorkspace, .taskTeam: true
+        default: false
+        }
+    }
+}
+
+router.present(route: .fullScreenWorkspace)  // bare
+router.presentSheet(route: .taskTeam)        // bare
 ```
 
-It's a property of the presentation, not of the route type, so the same route can be wrapped in one place and bare in another. `replace` keeps the flag it was opened with — swap only between routes that agree on it.
+The same goes for UIKit controllers wrapped in a `UIViewControllerRepresentable` that bring their own bar — `QLPreviewController`, `PHPickerViewController`, `EKEventEditViewController`, mail and message composers, `UIActivityViewController`. Inside a `RoutingView` they would sit under a `NavigationStack` they never asked for.
 
-Sheets inherit the presenting view's environment, so inside `.own` content `@Environment(Router<AppRoute>.self)` is the *presenting* router. `dismissChild()` on it is the router-side close, alongside `@Environment(\.dismiss)`; `dismiss()` there would ask the presenter's own parent.
+It is a property of the route, not of the call site: a destination either owns its container or it does not. A wrapper enum (the cross-tab `AppRoute` below) forwards `ownsNavigation` to its child route, like any per-route property; the default is `false`. `dismiss:` is ignored for such a route, since there is no bar to put the button in.
+
+`replace` keeps the navigation it was opened with — swap only between routes that agree on it.
+
+A bare presentation still gets a child router, injected as `@Environment(Router<AppRoute>.self)`, hosting that router's sheets and covers. So it can present on top of itself and close with `router.dismiss()` like any other presented screen; what it does not get is a `NavigationStack`.
 
 This is also the shape for presenting a whole split screen: the destination owns a `SplitRouter` and composes the `SplitRoutingView` itself. That wrapper view is not boilerplate — it is the *session scope*: the one place above both columns where objects the columns share can be created, injected, and torn down with the presentation.
 
@@ -363,7 +393,7 @@ struct WorkspaceView: View {
     }
 }
 
-appRouter.present(route: .workspace, navigation: .own)
+appRouter.present(route: .workspace)  // `.workspace` owns its navigation
 ```
 
 ## Cross-Tab Routing
@@ -454,29 +484,27 @@ options when presenting. `nil` is no button; `.visible` is a leading one:
 router.present(route: .settings)
 
 // Sheet with a dismiss button (sheets default to nil — they swipe away)
-router.presentSheet(route: .settings, navigation: .stack(dismiss: .visible))
+router.presentSheet(route: .settings, dismiss: .visible)
 
 // Dismiss button on the right
-router.present(
-    route: .settings,
-    navigation: .stack(dismiss: .init(dismissButtonPosition: .right))
-)
+router.present(route: .settings, dismiss: .init(dismissButtonPosition: .right))
 
 // Cover without a button — the content closes itself
-router.present(route: .settings, navigation: .stack(dismiss: nil))
+router.present(route: .settings, dismiss: nil)
 ```
 
 The options describe a button that is shown — its position, and whether pushed
 views inside the modal get it too. There is no hidden flag, so "no button" has
 one spelling and cannot disagree with on-push settings.
 
-`navigation: .own` carries no dismiss options at all — a destination that owns
-its navigation owns its chrome, and closes itself with `@Environment(\.dismiss)`.
+A route that owns its navigation gets no dismiss button — it owns its chrome,
+and closes itself with its own control, `router.dismiss()`, or
+`@Environment(\.dismiss)`.
 
 ## Migration from 1.x
 
-1. Remove `providesOwnNavigation` from your `Routable` conformances. Where a route needed its own navigation container, pass `navigation: .own` at the `present`/`presentSheet` call site.
-2. `presentSheet(route:dismissOptions:)` and `present(route:dismissOptions:)` became `navigation: .stack(dismiss:)`. `.hidden` is now `nil`; `.visible` is unchanged. Drop `showDismissButton:` from any `DismissButtonPresentationOptions.init` — a button you construct is shown.
+1. Rename `providesOwnNavigation` to `ownsNavigation` on your `Routable` conformances; a wrapper enum forwards it to its child route.
+2. `presentSheet(route:dismissOptions:)` and `present(route:dismissOptions:)` became `dismiss:`. `.hidden` is now `nil`; `.visible` is unchanged. Drop `showDismissButton:` from any `DismissButtonPresentationOptions.init` — a button you construct is shown.
 3. `replaceLast(with:)` is `replace(with:)`, and a replace of a presented modal now swaps its content in place instead of re-presenting.
 4. `RoutingView(router) { $0.start(.home) }` still compiles. `RoutingView(router, root: .home)` is the shorter form, and `dismissOptions:` is only needed when you build a `RoutingView` for presented content yourself.
 5. `@MainActor` annotations on `destination()` or `@MainActor Routable` conformances can be removed; the requirement is isolated now.
@@ -485,7 +513,7 @@ its navigation owns its chrome, and closes itself with `@Environment(\.dismiss)`
 
 The `ExampleRouterDemo` Xcode project demonstrates all features with a 5-tab app:
 
-- **Home** — push navigation, full-screen covers, cross-tab routing
+- **Home** — push navigation, full-screen covers, zoom transitions from a row, cross-tab routing, UIKit controllers (share sheet, photo picker) presented bare via `ownsNavigation`, and a sheet whose content you can swap two ways: `replace` (same identity, keeps the sheet and its detent) or re-present (a new sheet) — the presented controller's address shows which
 - **Stacking** — present sheets on top of sheets using `target: .deepest`, dismiss all with `dismissAllFromRoot()`
 - **Profile** — full-screen cover with dismiss button positioning
 - **Split** — `SplitRoutingView` with a button per `SplitRouter` API: column pushes, sheets and covers from either column, and `popAllToRoot()`. Run it on iPad and on iPhone to see that a column's presentations work in both layouts
