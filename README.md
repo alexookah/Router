@@ -194,7 +194,7 @@ router.present(route: .photo(id), transition: .zoom(sourceID: id))
 router.presentSheet(route: .photo(id), transition: .zoom(sourceID: id))
 ```
 
-Pushes and covers zoom from iOS 18, sheets from iOS 26; earlier systems ignore the transition. A presentation keeps its transition through `replace`; a push keeps it while the route is on the path. The source must sit inside the `RoutingView` (or `routerPresentations`) that shows the destination.
+Pushes, sheets, and covers zoom from iOS 18; earlier systems ignore the transition. A presentation keeps its transition through `replace`; a push keeps it while the route is on the path. The source must sit inside the `RoutingView` (or `routerPresentations`) that shows the destination.
 
 ## Router Hierarchy
 

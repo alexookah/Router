@@ -4,7 +4,7 @@ import SwiftUI
 /// system default.
 public enum PresentationTransition: Equatable {
     /// Zooms out of the view marked `zoomSource(id:)` with the same id, and
-    /// back into it on dismiss. Pushes and covers from iOS 18, sheets from iOS 26.
+    /// back into it on dismiss. Pushes, sheets, and covers, from iOS 18.
     case zoom(sourceID: AnyHashable)
 }
 
