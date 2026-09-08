@@ -305,10 +305,19 @@ struct DismissalTests {
         root.presentSheet(route: .profile)
         let child = root.routerFor(routeType: .sheet, toShow: .profile)
         child.push(route: .detail("1"))
-        child.dismissAllFromRoot()
+        #expect(child.dismissAllFromRoot())
         #expect(root.path.isEmpty)
         #expect(root.presentingSheet == nil)
         #expect(!root.hasChild)
+    }
+
+    @MainActor
+    @Test func dismissAllFromRootReportsNothingToDismiss() {
+        let root = Router<TestRoute>()
+        #expect(!root.dismissAllFromRoot())
+        root.push(route: .home)
+        #expect(root.dismissAllFromRoot())
+        #expect(!root.dismissAllFromRoot())
     }
 }
 
@@ -453,6 +462,27 @@ struct DismissingHierarchyTests {
         let parent = Router<TestRoute>()
         let child = Router<TestRoute>(parentRouter: parent)
         #expect(child.isDismissing)
+    }
+
+    /// A child that the parent replaced (dismiss + present, or replacePresented)
+    /// is dismissing even though the parent is presenting again.
+    @MainActor
+    @Test func replacedChildIsDismissing() {
+        let parent = Router<TestRoute>()
+        parent.presentSheet(route: .settings)
+        let first = parent.routerFor(routeType: .sheet, toShow: .settings)
+
+        parent.dismissChild()
+        parent.presentSheet(route: .profile)
+        let second = parent.routerFor(routeType: .sheet, toShow: .profile)
+
+        #expect(first.isDismissing)
+        #expect(!second.isDismissing)
+
+        parent.replacePresented(with: .home)
+        let third = parent.routerFor(routeType: .sheet, toShow: .home)
+        #expect(second.isDismissing)
+        #expect(!third.isDismissing)
     }
 
     @MainActor
@@ -970,7 +1000,7 @@ struct OwnsNavigationTests {
         let router = Router<TestRoute>()
         #expect(router.hasNavigationStack)
         router.presentSheet(route: .share)
-        let bare = router.routerFor(routeType: .sheet, toShow: .share, hostsNavigationStack: false)
+        let bare = router.routerFor(routeType: .sheet, toShow: .share)
         #expect(!bare.hasNavigationStack)
         #expect(!router.deepestRouter.hasNavigationStack)
 

@@ -39,19 +39,20 @@ struct RouterPresentationsModifier<Destination: Routable>: ViewModifier {
         for item: PresentedRoute<Destination>,
         as routeType: NavigationType
     ) -> some View {
-        switch item.navigation {
-        case .own:
-            let child = router.routerFor(routeType: routeType, toShow: item.route, hostsNavigationStack: false)
-            child.start(item.route)
-                .routerPresentations(child)
-                .environment(child)
-        case let .stack(dismiss):
-            RoutingView(
-                router.routerFor(routeType: routeType, toShow: item.route),
-                root: item.route,
-                dismissOptions: dismiss
-            )
+        let child = router.routerFor(routeType: routeType, toShow: item.route)
+        // A replace keeps the modal up; keying on the route rebuilds the content
+        // instead of reusing the old route's view state.
+        Group {
+            switch item.navigation {
+            case .own:
+                child.start(item.route)
+                    .routerPresentations(child)
+                    .environment(child)
+            case let .stack(dismiss):
+                RoutingView(child, root: item.route, dismissOptions: dismiss)
+            }
         }
+        .id(item.route)
     }
 }
 

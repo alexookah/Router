@@ -46,11 +46,11 @@ public class Router<Destination: Routable> {
         presentingSheet != nil || presentingFullScreenCover != nil
     }
 
-    /// Whether this router's presentation is being torn down — either directly
-    /// (parent stopped presenting) or transitively (an ancestor is dismissing).
+    /// Whether this router no longer belongs to a live presentation: its parent
+    /// stopped presenting, replaced it with another child, or is dismissing itself.
     public var isDismissing: Bool {
         guard let parentRouter else { return false }
-        return !parentRouter.isPresenting || parentRouter.isDismissing
+        return parentRouter.child?.router !== self || !parentRouter.isPresenting || parentRouter.isDismissing
     }
 
     public var isRootRouter: Bool {
@@ -66,9 +66,11 @@ public class Router<Destination: Routable> {
         child != nil
     }
 
-    /// False for the router of a bare presentation: it hosts sheets and covers
-    /// but no stack, so a `push` on it shows nothing.
-    public private(set) var hasNavigationStack = true
+    /// False for the router of a bare presentation (the parent's presented
+    /// route owns its navigation): it hosts sheets and covers but no stack.
+    public var hasNavigationStack: Bool {
+        parentRouter?.presented?.navigation != .own
+    }
 
     /// The sheet or cover this router is showing, if any.
     public var presented: PresentedRoute<Destination>? {
@@ -113,12 +115,7 @@ public class Router<Destination: Routable> {
 
     /// `.push` returns self; `.sheet`/`.fullScreenCover` reuses the child only
     /// when it already shows `target` (a re-render), otherwise creates a fresh one.
-    /// `hostsNavigationStack` is false for a bare presentation's child.
-    public func routerFor(
-        routeType: NavigationType,
-        toShow target: Destination,
-        hostsNavigationStack: Bool = true
-    ) -> Router {
+    public func routerFor(routeType: NavigationType, toShow target: Destination) -> Router {
         switch routeType {
         case .push:
             return self
@@ -127,7 +124,6 @@ public class Router<Destination: Routable> {
                 return child.router
             }
             let router = Router(parentRouter: self)
-            router.hasNavigationStack = hostsNavigationStack
             child = (router, target)
             return router
         }
@@ -264,10 +260,15 @@ public class Router<Destination: Routable> {
         }
     }
 
-    public func dismissAllFromRoot() {
+    /// Returns whether anything was dismissed or popped, so callers can decide
+    /// whether to wait for the animation before navigating again.
+    @discardableResult
+    public func dismissAllFromRoot() -> Bool {
         let root = rootRouter
+        let wasFullyAtRoot = root.isFullyAtRoot
         root.dismissChild()
         root.popToRoot()
+        return !wasFullyAtRoot
     }
 
     // MARK: - Private Hierarchy Helpers
