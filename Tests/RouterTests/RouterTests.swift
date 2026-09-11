@@ -298,6 +298,32 @@ struct DismissalTests {
     }
 
     @MainActor
+    @Test func dismissSelfAndParentClosesTheParentPresentation() {
+        let root = Router<TestRoute>()
+        root.presentSheet(route: .settings)
+        let child = root.routerFor(routeType: .sheet, toShow: .settings)
+        child.presentSheet(route: .profile)
+        let grandchild = child.routerFor(routeType: .sheet, toShow: .profile)
+
+        grandchild.dismissSelfAndParent()
+
+        #expect(root.presentingSheet == nil)
+        #expect(!root.hasChild)
+    }
+
+    @MainActor
+    @Test func dismissSelfAndParentOnARootChildDismissesItself() {
+        let root = Router<TestRoute>()
+        root.presentSheet(route: .settings)
+        let child = root.routerFor(routeType: .sheet, toShow: .settings)
+
+        child.dismissSelfAndParent()
+
+        #expect(root.presentingSheet == nil)
+        #expect(!root.hasChild)
+    }
+
+    @MainActor
     @Test func dismissAllFromRoot() {
         let root = Router<TestRoute>()
         root.push(route: .home)

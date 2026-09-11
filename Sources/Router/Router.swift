@@ -260,6 +260,13 @@ public class Router<Destination: Routable> {
         }
     }
 
+    /// Dismisses the parent's presentation, which takes this router with it. When the parent is
+    /// the root there is nothing above to dismiss, so this presentation goes instead.
+    public func dismissSelfAndParent() {
+        guard let parentRouter, !parentRouter.isRootRouter else { return dismiss() }
+        parentRouter.dismiss()
+    }
+
     /// Returns whether anything was dismissed or popped, so callers can decide
     /// whether to wait for the animation before navigating again.
     @discardableResult

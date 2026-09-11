@@ -165,6 +165,7 @@ router.popToRoot()           // clear the stack
 router.dismissChild()        // dismiss current sheet/fullScreenCover
 router.dismiss()             // ask parent to dismiss this modal
 router.dismissOrPopToRoot() // smart dismiss
+router.dismissSelfAndParent() // close the modal this modal was opened from (or just this one)
 router.dismissAllFromRoot()  // dismiss entire hierarchy; returns whether anything was dismissed
 ```
 
