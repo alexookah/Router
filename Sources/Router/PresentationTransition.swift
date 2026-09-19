@@ -18,16 +18,16 @@ extension View {
     @ViewBuilder
     func presentationTransition(_ transition: PresentationTransition?, in namespace: Namespace.ID) -> some View {
         #if os(iOS)
-        if #available(iOS 18, *), let transition {
-            switch transition {
-            case let .zoom(sourceID):
-                navigationTransition(.zoom(sourceID: sourceID, in: namespace))
+            if #available(iOS 18, *), let transition {
+                switch transition {
+                case let .zoom(sourceID):
+                    navigationTransition(.zoom(sourceID: sourceID, in: namespace))
+                }
+            } else {
+                self
             }
-        } else {
-            self
-        }
         #else
-        self
+            self
         #endif
     }
 }
@@ -38,13 +38,13 @@ private struct ZoomSourceModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         #if os(iOS)
-        if #available(iOS 18, *), let namespace {
-            content.matchedTransitionSource(id: id, in: namespace)
-        } else {
-            content
-        }
+            if #available(iOS 18, *), let namespace {
+                content.matchedTransitionSource(id: id, in: namespace)
+            } else {
+                content
+            }
         #else
-        content
+            content
         #endif
     }
 }
@@ -55,5 +55,4 @@ public extension View {
     func zoomSource(id: some Hashable) -> some View {
         modifier(ZoomSourceModifier(id: AnyHashable(id)))
     }
-
 }

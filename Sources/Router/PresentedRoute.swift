@@ -1,16 +1,16 @@
 import SwiftUI
 
 /// Who supplies the navigation container for a presented route, decided by
-/// the route's `ownsNavigation`.
+/// the route's `skipsNavigationStack`.
 public enum PresentedNavigation<Destination: Routable>: Equatable {
     /// The router wraps the destination in a `RoutingView`, so it can push and
     /// present further. `dismiss` configures the dismiss button; `nil` shows none.
     case stack(dismiss: DismissButtonPresentationOptions?)
     /// Presented without a `RoutingView`, but with a child router hosting its
     /// sheets and covers. Also the shape for presented split screens.
-    case own
+    case bare
 
-    /// The dismiss button for a `.stack` presentation; `nil` for none, and always for `.own`.
+    /// The dismiss button for a `.stack` presentation; `nil` for none, and always for `.bare`.
     public var dismissOptions: DismissButtonPresentationOptions? {
         if case let .stack(dismiss) = self { dismiss } else { nil }
     }
@@ -30,26 +30,26 @@ public struct PresentedRoute<Destination: Routable>: Identifiable, Equatable {
     public let sheetOptions: SheetPresentationOptions
     public let transition: PresentationTransition?
 
-    /// `dismiss` is ignored for a route that owns its navigation.
+    /// `dismiss` is ignored for a route that skips the navigation stack.
     public init(
         _ route: Destination,
         dismiss: DismissButtonPresentationOptions? = nil,
         sheetOptions: SheetPresentationOptions = .init(),
         transition: PresentationTransition? = nil
     ) {
-        self.id = route
+        id = route
         self.route = route
-        self.navigation = route.ownsNavigation ? .own : .stack(dismiss: dismiss)
+        navigation = route.skipsNavigationStack ? .bare : .stack(dismiss: dismiss)
         self.sheetOptions = sheetOptions
         self.transition = transition
     }
 
     /// A copy showing `route` under the same identity. The container follows
-    /// the new route's `ownsNavigation`; the dismiss button carries over.
+    /// the new route's `skipsNavigationStack`; the dismiss button carries over.
     func replacing(_ route: Destination) -> Self {
         var copy = self
         copy.route = route
-        copy.navigation = route.ownsNavigation ? .own : .stack(dismiss: navigation.dismissOptions)
+        copy.navigation = route.skipsNavigationStack ? .bare : .stack(dismiss: navigation.dismissOptions)
         return copy
     }
 }

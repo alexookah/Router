@@ -1,6 +1,6 @@
+@testable import Router
 import SwiftUI
 import Testing
-@testable import Router
 
 // MARK: - Test Route
 
@@ -15,7 +15,7 @@ enum TestRoute: Routable {
         switch self {
         case .home:
             Text("Home")
-        case .detail(let id):
+        case let .detail(id):
             Text("Detail: \(id)")
         case .settings:
             Text("Settings")
@@ -26,8 +26,13 @@ enum TestRoute: Routable {
         }
     }
 
-    var ownsNavigation: Bool { self == .share }
-    var hidesTabBar: Bool { self == .profile }
+    var skipsNavigationStack: Bool {
+        self == .share
+    }
+
+    var hidesTabBar: Bool {
+        self == .profile
+    }
 }
 
 // MARK: - Initialization
@@ -241,16 +246,16 @@ struct SheetPresentationTests {
 // MARK: - Full Screen Cover
 
 #if os(iOS)
-@Suite("Full Screen Cover")
-struct FullScreenCoverTests {
-    @MainActor
-    @Test func presentFullScreenCover() {
-        let router = Router<TestRoute>()
-        router.present(route: .profile)
-        #expect(router.presentingFullScreenCover?.route == .profile)
-        #expect(router.isPresenting)
+    @Suite("Full Screen Cover")
+    struct FullScreenCoverTests {
+        @MainActor
+        @Test func presentFullScreenCover() {
+            let router = Router<TestRoute>()
+            router.present(route: .profile)
+            #expect(router.presentingFullScreenCover?.route == .profile)
+            #expect(router.isPresenting)
+        }
     }
-}
 #endif
 
 // MARK: - Dismissal
@@ -612,29 +617,28 @@ struct PresentationDismissOptionsTests {
         #expect(router.presentingSheet?.navigation.dismissOptions?.showDismissButtonOnPush == true)
     }
 
-    /// "No button" has one spelling: a `nil` in the presentation. `.own`
+    /// "No button" has one spelling: a `nil` in the presentation. `.bare`
     /// carries no options at all, and a stack without a button carries `nil`,
     /// so a hidden button with on-push settings is unrepresentable.
     @MainActor
-    @Test func ownNavigationHasNoDismissOptions() {
+    @Test func bareNavigationHasNoDismissOptions() {
         let router = Router<TestRoute>()
         router.presentSheet(route: .settings)
         #expect(router.presentingSheet?.navigation == .stack(dismiss: nil))
         #expect(router.presentingSheet?.navigation.dismissOptions == nil)
 
         router.presentSheet(route: .share, dismiss: .visible)
-        #expect(router.presentingSheet?.navigation == .own)
-        #expect(router.presentingSheet?.navigation.dismissOptions == nil, "a route that owns its navigation has no bar for a button")
+        #expect(router.presentingSheet?.navigation == .bare)
+        #expect(router.presentingSheet?.navigation.dismissOptions == nil, "a route that skips the stack has no bar for a button")
     }
-
 
     #if os(iOS)
-    @MainActor
-    @Test func coversDefaultToAVisibleDismissButton() {
-        let router = Router<TestRoute>()
-        router.present(route: .settings)
-        #expect(router.presentingFullScreenCover?.navigation.dismissOptions == .visible)
-    }
+        @MainActor
+        @Test func coversDefaultToAVisibleDismissButton() {
+            let router = Router<TestRoute>()
+            router.present(route: .settings)
+            #expect(router.presentingFullScreenCover?.navigation.dismissOptions == .visible)
+        }
     #endif
 }
 
@@ -712,14 +716,14 @@ struct SplitRouterTests {
     }
 
     #if os(iOS)
-    @MainActor
-    @Test func screenCoverUsesTheCoverSlot() {
-        let router = SplitRouter<TestRoute>()
-        router.present(route: .settings)
+        @MainActor
+        @Test func screenCoverUsesTheCoverSlot() {
+            let router = SplitRouter<TestRoute>()
+            router.present(route: .settings)
 
-        #expect(router.presentingFullScreenCover?.route == .settings)
-        #expect(router.presentingSheet == nil)
-    }
+            #expect(router.presentingFullScreenCover?.route == .settings)
+            #expect(router.presentingSheet == nil)
+        }
     #endif
 
     @MainActor
@@ -852,18 +856,18 @@ struct ReplaceInPlaceTests {
     }
 
     #if os(iOS)
-    @MainActor
-    @Test func replaceKeepsTheCoverIdentity() {
-        let router = Router<TestRoute>()
-        router.present(route: .home)
-        let child = router.routerFor(routeType: .fullScreenCover, toShow: .home)
+        @MainActor
+        @Test func replaceKeepsTheCoverIdentity() {
+            let router = Router<TestRoute>()
+            router.present(route: .home)
+            let child = router.routerFor(routeType: .fullScreenCover, toShow: .home)
 
-        child.replace(with: .settings)
+            child.replace(with: .settings)
 
-        #expect(router.presentingFullScreenCover?.route == .settings)
-        #expect(router.presentingFullScreenCover?.id == .home)
-        #expect(router.presentingFullScreenCover?.navigation.dismissOptions == .visible)
-    }
+            #expect(router.presentingFullScreenCover?.route == .settings)
+            #expect(router.presentingFullScreenCover?.id == .home)
+            #expect(router.presentingFullScreenCover?.navigation.dismissOptions == .visible)
+        }
     #endif
 
     /// The presenting side can swap its own modal's content — the case
@@ -896,7 +900,7 @@ struct ReplaceInPlaceTests {
         let router = Router<TestRoute>()
         router.presentSheet(route: .home, dismiss: .visible)
         router.replacePresented(with: .share)
-        #expect(router.presentingSheet?.navigation == .own)
+        #expect(router.presentingSheet?.navigation == .bare)
 
         router.replacePresented(with: .settings)
         #expect(router.presentingSheet?.navigation == .stack(dismiss: nil), "own content carries no dismiss options forward")
@@ -994,10 +998,10 @@ struct RootDestinationTests {
 // MARK: - Route-level navigation default
 
 @Suite("Route-level navigation default")
-struct OwnsNavigationTests {
+struct SkipsNavigationStackTests {
     @MainActor
     @Test func routeFlagsDefaultToFalse() {
-        #expect(!TestRoute.settings.ownsNavigation)
+        #expect(!TestRoute.settings.skipsNavigationStack)
         #expect(!TestRoute.settings.hidesTabBar)
         #expect(TestRoute.profile.hidesTabBar)
     }
@@ -1007,17 +1011,17 @@ struct OwnsNavigationTests {
         let router = Router<TestRoute>()
         router.presentSheet(route: .settings)
         #expect(router.presentingSheet?.navigation == .stack(dismiss: nil))
-        #expect(!TestRoute.settings.ownsNavigation)
+        #expect(!TestRoute.settings.skipsNavigationStack)
     }
 
     @MainActor
-    @Test func aRouteThatOwnsNavigationPresentsBare() {
+    @Test func aRouteThatSkipsTheStackPresentsBare() {
         let router = Router<TestRoute>()
         router.presentSheet(route: .share)
-        #expect(router.presentingSheet?.navigation == .own)
+        #expect(router.presentingSheet?.navigation == .bare)
         #if os(iOS)
-        router.present(route: .share)
-        #expect(router.presentingFullScreenCover?.navigation == .own)
+            router.present(route: .share)
+            #expect(router.presentingFullScreenCover?.navigation == .bare)
         #endif
     }
 
@@ -1047,7 +1051,7 @@ struct OwnsNavigationTests {
         child.presentSheet(route: .share)
         let grandchild = child.routerFor(routeType: .sheet, toShow: .share)
         #expect(child.presented?.route == .share)
-        #expect(root.deepestRouter === grandchild, ".own content gets a child router like any presentation")
+        #expect(root.deepestRouter === grandchild, ".bare content gets a child router like any presentation")
     }
 }
 
@@ -1079,5 +1083,4 @@ struct TransitionTests {
         child.replace(with: .profile)
         #expect(router.presentingSheet?.transition == transition, "replace keeps the presentation's transition")
     }
-
 }

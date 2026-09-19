@@ -5,8 +5,8 @@
 //  Created by Alexandros Lykesas on 15/4/26.
 //
 
-import SwiftUI
 import Router
+import SwiftUI
 
 struct HomeView: View {
     @Environment(Router<AppRoute>.self) var router
@@ -55,7 +55,7 @@ struct HomeView: View {
                 }
             }
 
-            Section("UIKit controllers, via ownsNavigation") {
+            Section("UIKit controllers, via skipsNavigationStack") {
                 Button("Share sheet") {
                     router.presentSheet(
                         route: .home(.share(URL(string: "https://github.com/alexookah/Router")!)),

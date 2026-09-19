@@ -5,8 +5,8 @@
 //  Created by Alexandros Lykesas on 15/4/26.
 //
 
-import SwiftUI
 import Router
+import SwiftUI
 
 // MARK: - Top-Level Route
 
@@ -27,13 +27,13 @@ enum AppRoute: Routable {
         }
     }
 
-    var ownsNavigation: Bool {
+    var skipsNavigationStack: Bool {
         switch self {
-        case let .home(route): route.ownsNavigation
-        case let .profile(route): route.ownsNavigation
-        case let .stacking(route): route.ownsNavigation
-        case let .deepLinks(route): route.ownsNavigation
-        case let .split(route): route.ownsNavigation
+        case let .home(route): route.skipsNavigationStack
+        case let .profile(route): route.skipsNavigationStack
+        case let .stacking(route): route.skipsNavigationStack
+        case let .deepLinks(route): route.skipsNavigationStack
+        case let .split(route): route.skipsNavigationStack
         }
     }
 
@@ -75,7 +75,7 @@ enum HomeRoute: Routable {
     }
 
     /// UIKit controllers that bring their own bar are presented bare.
-    var ownsNavigation: Bool {
+    var skipsNavigationStack: Bool {
         switch self {
         case .share, .photoPicker: true
         default: false
@@ -153,7 +153,7 @@ enum SplitRoute: Routable {
     }
 
     /// The nested split composes its own `SplitRoutingView`.
-    var ownsNavigation: Bool {
+    var skipsNavigationStack: Bool {
         if case .nestedSplit = self { true } else { false }
     }
 }

@@ -34,6 +34,6 @@ public extension View {
     func onDeepLink(
         _ handleDeepLink: @escaping (URL) -> Bool
     ) -> some View {
-        self.modifier(DeepLinkModifier(handleDeepLink: handleDeepLink))
+        modifier(DeepLinkModifier(handleDeepLink: handleDeepLink))
     }
 }

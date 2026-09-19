@@ -5,7 +5,6 @@ import SwiftUI
 @MainActor
 @Observable
 public class Router<Destination: Routable> {
-
     // MARK: - Public State
 
     public var path: [Destination] = [] {
@@ -67,9 +66,9 @@ public class Router<Destination: Routable> {
     }
 
     /// False for the router of a bare presentation (the parent's presented
-    /// route owns its navigation): it hosts sheets and covers but no stack.
+    /// route skips the navigation stack): it hosts sheets and covers but no stack.
     public var hasNavigationStack: Bool {
-        parentRouter?.presented?.navigation != .own
+        parentRouter?.presented?.navigation != .bare
     }
 
     /// The sheet or cover this router is showing, if any.
@@ -149,19 +148,19 @@ public class Router<Destination: Routable> {
     }
 
     #if os(iOS)
-    /// iOS only — macOS has no full-screen cover; use `presentSheet(...)`.
-    ///
-    /// `dismiss` is the cover's button, leading by default; `nil` for none.
-    public func present(
-        route: Destination,
-        dismiss: DismissButtonPresentationOptions? = .visible,
-        transition: PresentationTransition? = nil,
-        target: NavigationTarget = .current
-    ) {
-        let router = targetRouter(for: target)
-        router.presentingSheet = nil
-        router.presentingFullScreenCover = PresentedRoute(route, dismiss: dismiss, transition: transition)
-    }
+        /// iOS only — macOS has no full-screen cover; use `presentSheet(...)`.
+        ///
+        /// `dismiss` is the cover's button, leading by default; `nil` for none.
+        public func present(
+            route: Destination,
+            dismiss: DismissButtonPresentationOptions? = .visible,
+            transition: PresentationTransition? = nil,
+            target: NavigationTarget = .current
+        ) {
+            let router = targetRouter(for: target)
+            router.presentingSheet = nil
+            router.presentingFullScreenCover = PresentedRoute(route, dismiss: dismiss, transition: transition)
+        }
     #endif
 
     /// `dismiss` is the sheet's button, none by default.

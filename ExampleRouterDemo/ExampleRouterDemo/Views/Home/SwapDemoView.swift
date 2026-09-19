@@ -3,8 +3,8 @@
 //  ExampleRouterDemo
 //
 
-import SwiftUI
 import Router
+import SwiftUI
 
 /// Compares `replace`, which keeps the sheet and its detent, with a
 /// re-present, which shows a new sheet. The controller's address is the tell.
@@ -55,7 +55,9 @@ struct SwapDemoView: View {
         guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let root = scene.keyWindow?.rootViewController else { return }
         var top = root
-        while let presented = top.presentedViewController { top = presented }
+        while let presented = top.presentedViewController {
+            top = presented
+        }
         controller = String(describing: Unmanaged.passUnretained(top).toOpaque()).suffix(6).description
     }
 }

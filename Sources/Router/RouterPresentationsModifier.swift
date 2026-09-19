@@ -12,7 +12,9 @@ struct RouterPresentationsModifier<Destination: Routable>: ViewModifier {
     var namespace: Namespace.ID?
     @Namespace private var ownNamespace
 
-    private var transitions: Namespace.ID { namespace ?? ownNamespace }
+    private var transitions: Namespace.ID {
+        namespace ?? ownNamespace
+    }
 
     func body(content: Content) -> some View {
         content
@@ -26,12 +28,12 @@ struct RouterPresentationsModifier<Destination: Routable>: ViewModifier {
                     .presentationDragIndicator(item.sheetOptions.dragIndicator)
                     .interactiveDismissDisabled(item.sheetOptions.isInteractiveDismissDisabled)
             }
-            #if os(iOS)
+        #if os(iOS)
             .fullScreenCover(item: $router.presentingFullScreenCover, onDismiss: router.onPresentationDismissed) { item in
                 presentedContent(for: item, as: .fullScreenCover)
                     .presentationTransition(item.transition, in: transitions)
             }
-            #endif
+        #endif
     }
 
     @ViewBuilder
@@ -44,7 +46,7 @@ struct RouterPresentationsModifier<Destination: Routable>: ViewModifier {
         // instead of reusing the old route's view state.
         Group {
             switch item.navigation {
-            case .own:
+            case .bare:
                 child.start(item.route)
                     .routerPresentations(child)
                     .environment(child)

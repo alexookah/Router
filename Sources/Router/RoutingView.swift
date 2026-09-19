@@ -20,7 +20,7 @@ public struct RoutingView<Content: View, Destination: Routable>: View
     ) {
         self.router = router
         self.dismissOptions = dismissOptions
-        self.rootContent = content
+        rootContent = content
     }
 
     /// A stack rooted at `root` — the common case. The closure form is for

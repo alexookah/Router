@@ -6,27 +6,27 @@ struct DismissToolbar: ToolbarContent {
 
     var body: some ToolbarContent {
         #if os(iOS)
-        ToolbarItem(placement: dismissOptions.dismissButtonPosition == .left ? .topBarLeading : .topBarTrailing) {
-            dismissButton
-        }
+            ToolbarItem(placement: dismissOptions.dismissButtonPosition == .left ? .topBarLeading : .topBarTrailing) {
+                dismissButton
+            }
         #else
-        // macOS: use the semantic cancellation slot; the platform picks the native location
-        ToolbarItem(placement: .cancellationAction) {
-            dismissButton
-        }
+            // macOS: use the semantic cancellation slot; the platform picks the native location
+            ToolbarItem(placement: .cancellationAction) {
+                dismissButton
+            }
         #endif
     }
 
     @ViewBuilder
     private var dismissButton: some View {
         #if os(iOS)
-        if #available(iOS 26, *) {
-            Button(role: .close, action: dismissAction)
-        } else {
-            customCloseButton
-        }
+            if #available(iOS 26, *) {
+                Button(role: .close, action: dismissAction)
+            } else {
+                customCloseButton
+            }
         #else
-        customCloseButton
+            customCloseButton
         #endif
     }
 

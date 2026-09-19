@@ -8,14 +8,13 @@ import SwiftUI
 /// lands two levels deep. Branch on ``SplitRouter/isCollapsed`` when a push
 /// should read as one level.
 public struct SplitRoutingView<Destination: Routable>: View {
-
     @Bindable private var router: SplitRouter<Destination>
 
     private let sidebarRoute: Destination
     private let detailRoute: Destination
 
     #if os(iOS)
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #endif
 
     public init(
@@ -24,8 +23,8 @@ public struct SplitRoutingView<Destination: Routable>: View {
         detail: Destination
     ) {
         self.router = router
-        self.sidebarRoute = sidebar
-        self.detailRoute = detail
+        sidebarRoute = sidebar
+        detailRoute = detail
     }
 
     public var body: some View {
@@ -39,9 +38,9 @@ public struct SplitRoutingView<Destination: Routable>: View {
     /// Unavailable on macOS, where a `NavigationSplitView` never collapses.
     private var isCompactWidth: Bool {
         #if os(iOS)
-        horizontalSizeClass == .compact
+            horizontalSizeClass == .compact
         #else
-        false
+            false
         #endif
     }
 

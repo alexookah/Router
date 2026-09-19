@@ -6,13 +6,13 @@ let package = Package(
     name: "Router",
     platforms: [
         .iOS(.v17),
-        .macOS(.v14)
+        .macOS(.v14),
     ],
     products: [
         .library(
             name: "Router",
             targets: ["Router"]
-        )
+        ),
     ],
     targets: [
         .target(
@@ -21,6 +21,6 @@ let package = Package(
         .testTarget(
             name: "RouterTests",
             dependencies: ["Router"]
-        )
+        ),
     ]
 )

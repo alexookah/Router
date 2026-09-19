@@ -14,7 +14,6 @@ import SwiftUI
 @MainActor
 @Observable
 public final class SplitRouter<Destination: Routable>: Router<Destination> {
-
     public init(
         parentRouter: Router<Destination>? = nil,
         columnVisibility: NavigationSplitViewVisibility = .automatic,
@@ -36,7 +35,9 @@ public final class SplitRouter<Destination: Routable>: Router<Destination> {
     /// sidebar, not the split router.
     public let sidebar = Router<Destination>()
 
-    public var detail: Router<Destination> { self }
+    public var detail: Router<Destination> {
+        self
+    }
 
     public var sidebarPath: [Destination] {
         get { sidebar.path }

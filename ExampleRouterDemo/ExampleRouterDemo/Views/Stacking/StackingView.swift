@@ -5,8 +5,8 @@
 //  Created by Alexandros Lykesas on 15/4/26.
 //
 
-import SwiftUI
 import Router
+import SwiftUI
 
 struct StackingView: View {
     @Environment(Router<AppRoute>.self) var router

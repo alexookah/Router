@@ -3,8 +3,8 @@
 //  ExampleRouterDemo
 //
 
-import SwiftUI
 import Router
+import SwiftUI
 
 /// A pushed screen whose route hides the tab bar while it is on top.
 struct ReaderView: View {

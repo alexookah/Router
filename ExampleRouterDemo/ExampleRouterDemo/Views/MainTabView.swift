@@ -5,8 +5,8 @@
 //  Created by Alexandros Lykesas on 15/4/26.
 //
 
-import SwiftUI
 import Router
+import SwiftUI
 
 enum AppTab: String, CaseIterable, Hashable {
     case home, stacking, profile, split, deepLinks

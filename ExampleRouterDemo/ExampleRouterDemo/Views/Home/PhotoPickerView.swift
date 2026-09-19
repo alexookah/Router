@@ -4,10 +4,10 @@
 //
 
 import PhotosUI
-import SwiftUI
 import Router
+import SwiftUI
 
-/// The system photo picker; its route owns its navigation, so it goes up bare.
+/// The system photo picker; its route skips the navigation stack, so it goes up bare.
 struct PhotoPickerView: View {
     @Environment(AppRouter.self) private var router
 
@@ -28,13 +28,20 @@ private struct PhotoPickerRepresentable: UIViewControllerRepresentable {
         return picker
     }
 
-    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
+    func updateUIViewController(_: PHPickerViewController, context _: Context) {}
 
-    func makeCoordinator() -> Coordinator { Coordinator(onFinish: onFinish) }
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onFinish: onFinish)
+    }
 
     final class Coordinator: NSObject, PHPickerViewControllerDelegate {
         let onFinish: () -> Void
-        init(onFinish: @escaping () -> Void) { self.onFinish = onFinish }
-        func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) { onFinish() }
+        init(onFinish: @escaping () -> Void) {
+            self.onFinish = onFinish
+        }
+
+        func picker(_: PHPickerViewController, didFinishPicking _: [PHPickerResult]) {
+            onFinish()
+        }
     }
 }
