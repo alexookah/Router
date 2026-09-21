@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Who supplies the navigation container for a presented route, decided by
-/// the route's `skipsNavigationStack`.
+/// the route's `usesNavigationStack`.
 public enum PresentedNavigation<Destination: Routable>: Equatable {
     /// The router wraps the destination in a `RoutingView`, so it can push and
     /// present further. `dismiss` configures the dismiss button; `nil` shows none.
@@ -30,7 +30,7 @@ public struct PresentedRoute<Destination: Routable>: Identifiable, Equatable {
     public let sheetOptions: SheetPresentationOptions
     public let transition: PresentationTransition?
 
-    /// `dismiss` is ignored for a route that skips the navigation stack.
+    /// `dismiss` is ignored for a route that uses no navigation stack.
     public init(
         _ route: Destination,
         dismiss: DismissButtonPresentationOptions? = nil,
@@ -39,17 +39,17 @@ public struct PresentedRoute<Destination: Routable>: Identifiable, Equatable {
     ) {
         id = route
         self.route = route
-        navigation = route.skipsNavigationStack ? .bare : .stack(dismiss: dismiss)
+        navigation = route.usesNavigationStack ? .stack(dismiss: dismiss) : .bare
         self.sheetOptions = sheetOptions
         self.transition = transition
     }
 
     /// A copy showing `route` under the same identity. The container follows
-    /// the new route's `skipsNavigationStack`; the dismiss button carries over.
+    /// the new route's `usesNavigationStack`; the dismiss button carries over.
     func replacing(_ route: Destination) -> Self {
         var copy = self
         copy.route = route
-        copy.navigation = route.skipsNavigationStack ? .bare : .stack(dismiss: navigation.dismissOptions)
+        copy.navigation = route.usesNavigationStack ? .stack(dismiss: navigation.dismissOptions) : .bare
         return copy
     }
 }

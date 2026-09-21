@@ -16,17 +16,18 @@ public protocol Routable: Hashable {
     associatedtype ViewType: View
     @MainActor @ViewBuilder func destination() -> ViewType
 
-    /// Whether the destination is presented without a `NavigationStack`, because it
-    /// brings its own container (a split view, a UIKit controller) or needs none.
-    var skipsNavigationStack: Bool { get }
+    /// Whether the router wraps the destination in a `NavigationStack` when presenting it.
+    /// `false` for one that brings its own container (a split view, a UIKit controller)
+    /// or needs none; it is presented bare.
+    var usesNavigationStack: Bool { get }
 
     /// Whether the tab bar hides while this route is on top of a pushed stack.
     var hidesTabBar: Bool { get }
 }
 
 public extension Routable {
-    var skipsNavigationStack: Bool {
-        false
+    var usesNavigationStack: Bool {
+        true
     }
 
     var hidesTabBar: Bool {

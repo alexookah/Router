@@ -19,7 +19,7 @@ struct SplitDemoView: View {
 
 /// A whole split screen presented as a modal: the destination owns the
 /// `SplitRouter` and composes the `SplitRoutingView` itself, presented with
-/// a route that skips the navigation stack (`SplitRoute.nestedSplit`). Anything the columns share — session objects, a
+/// a route that uses no navigation stack (`SplitRoute.nestedSplit`). Anything the columns share — session objects, a
 /// coordinator — would be created here and injected around the split.
 struct NestedSplitDemoView: View {
     @Environment(\.dismiss) private var dismiss

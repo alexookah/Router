@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-/// The system share sheet; its route skips the navigation stack, so it goes up bare.
+/// The system share sheet; its route uses no navigation stack, so it goes up bare.
 struct ShareSheetView: UIViewControllerRepresentable {
     let items: [Any]
 

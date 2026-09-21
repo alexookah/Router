@@ -7,7 +7,7 @@ import PhotosUI
 import Router
 import SwiftUI
 
-/// The system photo picker; its route skips the navigation stack, so it goes up bare.
+/// The system photo picker; its route uses no navigation stack, so it goes up bare.
 struct PhotoPickerView: View {
     @Environment(AppRouter.self) private var router
 

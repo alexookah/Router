@@ -21,7 +21,7 @@ Most SwiftUI routing libraries scope navigation to a single `NavigationStack`. R
 - **Push, sheet, and full-screen cover** navigation with one generic `Router<Destination>`
 - **NavigationSplitView support** — `SplitRouter` is a `Router` driving the detail column, with `sidebar` a full `Router` for the other, so both columns take the same verbs. It owns the split view's layout state and reports `isCollapsed` for compact width
 - **Presentation without a stack** — `.routerPresentations(_:)` hosts router-driven modals on any view that already has navigation above it
-- **Bare presentations** — a route declaring `skipsNavigationStack` is presented without a `RoutingView`: split screens, views with their own `NavigationStack`, UIKit controllers
+- **Bare presentations** — a route whose `usesNavigationStack` is `false` is presented without a `RoutingView`: split screens, views with their own `NavigationStack`, UIKit controllers
 - **NavigationTarget** — route to `.current`, `.parent`, `.root`, or `.deepest` router in a hierarchy
 - **Cross-tab routing** — routers injected via `@Environment`, accessible from any child view
 - **Sheet presentation options** — detents, drag indicator, interactive dismiss
@@ -151,7 +151,7 @@ router.present(
     )
 )
 
-// A route whose `skipsNavigationStack` is true goes up bare, no RoutingView around it
+// A route whose `usesNavigationStack` is false goes up bare, no RoutingView around it
 router.present(route: .workspace)
 ```
 
@@ -359,14 +359,14 @@ photoRouter.present(route: .camera(partId: id))
 
 ### Bare presentations
 
-Presented routes are normally wrapped in a `RoutingView` so they can push and present further. If a destination *is* a navigation container (a `NavigationSplitView`, or a view that builds its own `NavigationStack`), its route says so with `skipsNavigationStack`, and the router presents it as-is:
+Presented routes are normally wrapped in a `RoutingView` so they can push and present further. If a destination *is* a navigation container (a `NavigationSplitView`, or a view that builds its own `NavigationStack`), its route says so by returning `false` from `usesNavigationStack`, and the router presents it as-is:
 
 ```swift
 enum AppRoute: Routable {
-    var skipsNavigationStack: Bool {
+    var usesNavigationStack: Bool {
         switch self {
-        case .fullScreenWorkspace, .taskTeam: true
-        default: false
+        case .fullScreenWorkspace, .taskTeam: false
+        default: true
         }
     }
 }
@@ -377,7 +377,7 @@ router.presentSheet(route: .taskTeam)        // bare
 
 The same goes for UIKit controllers wrapped in a `UIViewControllerRepresentable` that bring their own bar — `QLPreviewController`, `PHPickerViewController`, `EKEventEditViewController`, mail and message composers, `UIActivityViewController`. Inside a `RoutingView` they would sit under a `NavigationStack` they never asked for.
 
-It is a property of the route, not of the call site: a destination either needs the stack or it does not. A wrapper enum (the cross-tab `AppRoute` below) forwards `skipsNavigationStack` to its child route, like any per-route property; the default is `false`. `dismiss:` is ignored for such a route, since there is no bar to put the button in.
+It is a property of the route, not of the call site: a destination either needs the stack or it does not. A wrapper enum (the cross-tab `AppRoute` below) forwards `usesNavigationStack` to its child route, like any per-route property; the default is `true`. `dismiss:` is ignored for such a route, since there is no bar to put the button in.
 
 `replace` keeps the navigation it was opened with — swap only between routes that agree on it.
 
@@ -396,7 +396,7 @@ struct WorkspaceView: View {
     }
 }
 
-appRouter.present(route: .workspace)  // `.workspace` skips the navigation stack
+appRouter.present(route: .workspace)  // `.workspace` uses no navigation stack
 ```
 
 ## Cross-Tab Routing
@@ -500,7 +500,7 @@ The options describe a button that is shown — its position, and whether pushed
 views inside the modal get it too. There is no hidden flag, so "no button" has
 one spelling and cannot disagree with on-push settings.
 
-A route that skips the navigation stack gets no dismiss button — it owns its chrome,
+A route that uses no navigation stack gets no dismiss button — it owns its chrome,
 and closes itself with its own control, `router.dismiss()`, or
 `@Environment(\.dismiss)`.
 
@@ -510,15 +510,15 @@ and closes itself with its own control, `router.dismiss()`, or
 2. `replaceLast(with:)` is `replace(with:)`; replacing a presented modal now swaps its content in place.
 3. `presentingSheet` and `presentingFullScreenCover` hold a `PresentedRoute`; read `presentingSheet?.route` where you read the route before.
 4. `Routable` no longer requires `Identifiable`, and its default `id` is gone; define one if your code used `route.id`.
-5. A route that builds its own navigation container, or wraps a UIKit controller with its own bar, declares `skipsNavigationStack`; it is presented without a `RoutingView`.
+5. A route that builds its own navigation container, or wraps a UIKit controller with its own bar, returns `false` from `usesNavigationStack`; it is presented without a `RoutingView`.
 6. `RoutingView(router) { $0.start(.home) }` still compiles; `RoutingView(router, root: .home)` is the shorter form.
-7. `ownsNavigation` is now `skipsNavigationStack`, and `PresentedNavigation.own` is `.bare`. Rename every override: a leftover `ownsNavigation` still compiles but is ignored, so that route silently gets a stack again.
+7. `ownsNavigation` is now `usesNavigationStack` with the meaning inverted (default `true`; return `false` where you returned `true`), and `PresentedNavigation.own` is `.bare`. Update every override: a leftover `ownsNavigation` still compiles but is ignored, so that route silently gets a stack again.
 
 ## Example App
 
 The `ExampleRouterDemo` Xcode project demonstrates all features with a 5-tab app:
 
-- **Home** — push navigation, full-screen covers, a pushed screen that hides the tab bar via `hidesTabBar`, zoom transitions from a row, cross-tab routing, UIKit controllers (share sheet, photo picker) presented bare via `skipsNavigationStack`, and a sheet whose content you can swap two ways: `replace` (same identity, keeps the sheet and its detent) or re-present (a new sheet) — the presented controller's address shows which
+- **Home** — push navigation, full-screen covers, a pushed screen that hides the tab bar via `hidesTabBar`, zoom transitions from a row, cross-tab routing, UIKit controllers (share sheet, photo picker) presented bare via `usesNavigationStack`, and a sheet whose content you can swap two ways: `replace` (same identity, keeps the sheet and its detent) or re-present (a new sheet) — the presented controller's address shows which
 - **Stacking** — present sheets on top of sheets using `target: .deepest`, dismiss all with `dismissAllFromRoot()`
 - **Profile** — full-screen cover with dismiss button positioning
 - **Split** — `SplitRoutingView` with a button per `SplitRouter` API: column pushes, sheets and covers from either column, and `popAllToRoot()`. Run it on iPad and on iPhone to see that a column's presentations work in both layouts

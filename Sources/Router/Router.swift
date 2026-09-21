@@ -66,7 +66,7 @@ public class Router<Destination: Routable> {
     }
 
     /// False for the router of a bare presentation (the parent's presented
-    /// route skips the navigation stack): it hosts sheets and covers but no stack.
+    /// route uses no navigation stack): it hosts sheets and covers but no stack.
     public var hasNavigationStack: Bool {
         parentRouter?.presented?.navigation != .bare
     }

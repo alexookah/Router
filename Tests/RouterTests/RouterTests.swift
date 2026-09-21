@@ -26,8 +26,8 @@ enum TestRoute: Routable {
         }
     }
 
-    var skipsNavigationStack: Bool {
-        self == .share
+    var usesNavigationStack: Bool {
+        self != .share
     }
 
     var hidesTabBar: Bool {
@@ -629,7 +629,7 @@ struct PresentationDismissOptionsTests {
 
         router.presentSheet(route: .share, dismiss: .visible)
         #expect(router.presentingSheet?.navigation == .bare)
-        #expect(router.presentingSheet?.navigation.dismissOptions == nil, "a route that skips the stack has no bar for a button")
+        #expect(router.presentingSheet?.navigation.dismissOptions == nil, "a route without a stack has no bar for a button")
     }
 
     #if os(iOS)
@@ -998,10 +998,10 @@ struct RootDestinationTests {
 // MARK: - Route-level navigation default
 
 @Suite("Route-level navigation default")
-struct SkipsNavigationStackTests {
+struct UsesNavigationStackTests {
     @MainActor
-    @Test func routeFlagsDefaultToFalse() {
-        #expect(!TestRoute.settings.skipsNavigationStack)
+    @Test func routeFlagDefaults() {
+        #expect(TestRoute.settings.usesNavigationStack)
         #expect(!TestRoute.settings.hidesTabBar)
         #expect(TestRoute.profile.hidesTabBar)
     }
@@ -1011,11 +1011,11 @@ struct SkipsNavigationStackTests {
         let router = Router<TestRoute>()
         router.presentSheet(route: .settings)
         #expect(router.presentingSheet?.navigation == .stack(dismiss: nil))
-        #expect(!TestRoute.settings.skipsNavigationStack)
+        #expect(TestRoute.settings.usesNavigationStack)
     }
 
     @MainActor
-    @Test func aRouteThatSkipsTheStackPresentsBare() {
+    @Test func aRouteWithoutAStackPresentsBare() {
         let router = Router<TestRoute>()
         router.presentSheet(route: .share)
         #expect(router.presentingSheet?.navigation == .bare)

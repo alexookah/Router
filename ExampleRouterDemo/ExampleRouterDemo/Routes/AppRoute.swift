@@ -27,13 +27,13 @@ enum AppRoute: Routable {
         }
     }
 
-    var skipsNavigationStack: Bool {
+    var usesNavigationStack: Bool {
         switch self {
-        case let .home(route): route.skipsNavigationStack
-        case let .profile(route): route.skipsNavigationStack
-        case let .stacking(route): route.skipsNavigationStack
-        case let .deepLinks(route): route.skipsNavigationStack
-        case let .split(route): route.skipsNavigationStack
+        case let .home(route): route.usesNavigationStack
+        case let .profile(route): route.usesNavigationStack
+        case let .stacking(route): route.usesNavigationStack
+        case let .deepLinks(route): route.usesNavigationStack
+        case let .split(route): route.usesNavigationStack
         }
     }
 
@@ -75,10 +75,10 @@ enum HomeRoute: Routable {
     }
 
     /// UIKit controllers that bring their own bar are presented bare.
-    var skipsNavigationStack: Bool {
+    var usesNavigationStack: Bool {
         switch self {
-        case .share, .photoPicker: true
-        default: false
+        case .share, .photoPicker: false
+        default: true
         }
     }
 
@@ -153,7 +153,7 @@ enum SplitRoute: Routable {
     }
 
     /// The nested split composes its own `SplitRoutingView`.
-    var skipsNavigationStack: Bool {
-        if case .nestedSplit = self { true } else { false }
+    var usesNavigationStack: Bool {
+        if case .nestedSplit = self { false } else { true }
     }
 }

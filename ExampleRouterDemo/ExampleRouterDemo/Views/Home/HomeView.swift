@@ -55,7 +55,7 @@ struct HomeView: View {
                 }
             }
 
-            Section("UIKit controllers, via skipsNavigationStack") {
+            Section("UIKit controllers, without a navigation stack") {
                 Button("Share sheet") {
                     router.presentSheet(
                         route: .home(.share(URL(string: "https://github.com/alexookah/Router")!)),
