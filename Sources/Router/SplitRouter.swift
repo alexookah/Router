@@ -19,6 +19,7 @@ public final class SplitRouter<Destination: Routable>: Router<Destination> {
         columnVisibility: NavigationSplitViewVisibility = .automatic,
         preferredCompactColumn: NavigationSplitViewColumn = .sidebar
     ) {
+        sidebar = Router<Destination>()
         super.init(parentRouter: parentRouter)
         self.columnVisibility = columnVisibility
         self.preferredCompactColumn = preferredCompactColumn
@@ -33,7 +34,7 @@ public final class SplitRouter<Destination: Routable>: Router<Destination> {
     /// of the split router, so `sidebar.dismiss()` is a no-op and
     /// `target: .root` from a sidebar-presented modal resolves to the
     /// sidebar, not the split router.
-    public let sidebar = Router<Destination>()
+    public let sidebar: Router<Destination>
 
     public var detail: Router<Destination> {
         self
