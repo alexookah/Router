@@ -73,14 +73,14 @@ struct MainTabView: View {
                 }
             }
         case "split":
-            // routerdemo://split/article/7 → push in the detail column
+            // routerdemo://split/article/7 → show it, as a sidebar row would
             // routerdemo://split/folder/2  → drill the sidebar column
             selectedTab = .split
             splitRouter.popAllToRoot()
             if let kind = path.first, let id = path.dropFirst().first.flatMap({ Int($0) }) {
                 navigateAfterTabSwitch {
                     switch kind {
-                    case "article": splitRouter.push(route: .split(.article(id)))
+                    case "article": splitRouter.show(.split(.article(id)))
                     case "folder": splitRouter.sidebarPath = [.split(.folder(id))]
                     default: break
                     }

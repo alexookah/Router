@@ -70,12 +70,26 @@ public final class SplitRouter<Destination: Routable>: Router<Destination> {
     /// Set `.all` to show both columns from launch.
     public var columnVisibility: NavigationSplitViewVisibility = .automatic
 
+    /// The sidebar's pick, shown as the detail column's root in place of the
+    /// `detail` route given to ``SplitRoutingView``. Set it with ``show(_:)``.
+    public internal(set) var selection: Destination?
+
     // MARK: - Navigation
+
+    /// Shows `route` as the sidebar's pick. It replaces the previous pick, and
+    /// anything pushed on it, rather than stacking. Use `push` to drill within
+    /// the detail column.
+    public func show(_ route: Destination) {
+        popToRoot()
+        selection = route
+        preferredCompactColumn = .detail
+    }
 
     public func popAllToRoot() {
         sidebar.popToRoot()
         sidebar.dismissChild()
         popToRoot()
         dismissChild()
+        selection = nil
     }
 }

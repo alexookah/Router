@@ -52,18 +52,9 @@ struct SplitFoldersView: View {
             }
 
             Section("Cross-column") {
-                Button("push — open an article in detail") {
-                    router.push(route: .split(.article(1)))
-                }
-                Button("push — one level, either layout") {
-                    // Collapsed, the columns are one stack (sidebar root →
-                    // detail root → detail path), so a detail push lands two
-                    // levels deep. Pushing the sidebar instead keeps "back"
-                    // meaning "back to Folders".
-                    if router.isCollapsed {
-                        router.sidebar.push(route: .split(.article(1)))
-                    } else {
-                        router.push(route: .split(.article(1)))
+                ForEach(1 ..< 4) { index in
+                    Button("show — Article \(index)") {
+                        router.show(.split(.article(index)))
                     }
                 }
             }
@@ -87,8 +78,8 @@ struct SplitFolderView: View {
             Button("Drill deeper") {
                 router.sidebar.push(route: .split(.folder(index + 1)))
             }
-            Button("Open article \(index) in detail") {
-                router.push(route: .split(.article(index)))
+            Button("show — Article \(index)") {
+                router.show(.split(.article(index)))
             }
         }
         .navigationTitle("Folder \(index)")
@@ -143,7 +134,7 @@ struct SplitOverviewView: View {
                 Only one modal shows per view-controller chain — stack with \
                 target: .deepest rather than presenting from two surfaces. \
                 For deep links into this tab, try the Deep Links tab: \
-                routerdemo://split/article/7 pushes Article 7 here, \
+                routerdemo://split/article/7 shows Article 7, \
                 routerdemo://split/folder/2 drills the sidebar.
                 """)
                 .font(.footnote)

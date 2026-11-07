@@ -251,6 +251,7 @@ SplitRoutingView(appRouter, sidebar: .folders, detail: .overview)
 So every surface uses `Router`'s own API, with no extra names to learn:
 
 ```swift
+appRouter.show(.article(id))                   // the sidebar's pick (detail root)
 appRouter.push(route: .article(id))            // detail column
 appRouter.presentSheet(route: .settings)       // modal over the screen
 appRouter.present(route: .editor)              // full-screen cover (iOS)
@@ -296,15 +297,15 @@ Two consequences worth knowing before you ship an iPhone build:
 - **The detail root is a real screen.** `appRouter.push(route:)` from the sidebar lands *two* levels deep, so going back reaches the detail root rather than the sidebar. On iPad you never notice, because the detail root is permanently on screen in the other column.
 - **`horizontalSizeClass` is the wrong tool inside a column.** A column reports its own width, so a narrow sidebar on a full-size iPad reads as `.compact` while both panes are visible.
 
-`SplitRoutingView` sits outside the split view, so it can read the window's size class and publish it as `isCollapsed`. Branch on that when a push should read as one level to the user:
+For sidebar rows, use `show` instead of `push`. The pick becomes the detail column's root, so it is one level deep in either layout, a second pick replaces the first instead of stacking, and it stays in the detail column through a rotation or a fold:
 
 ```swift
-if appRouter.isCollapsed {
-    appRouter.sidebar.push(route: .article(id))   // one stack: stays one level
-} else {
-    appRouter.push(route: .article(id))           // detail column
-}
+appRouter.show(.article(id))           // the sidebar's pick
+appRouter.push(route: .comments(id))   // drill within the detail column
+appRouter.selection                    // the current pick, nil for the `detail:` route
 ```
+
+`SplitRoutingView` also publishes the window's size class as `isCollapsed`, for UI that should look different when collapsed.
 
 ### Layout state
 
