@@ -8,6 +8,10 @@ public struct RoutingView<Content: View, Destination: Routable>: View
     @Namespace private var transitions
     @State private var hideTabBar = false
 
+    /// The route this stack is rooted at, when built from one. A new route is a
+    /// new root screen, with fresh `@State`, not the old one updated in place.
+    private let root: Destination?
+
     /// The dismiss button for this stack, or `nil` for none. Set by
     /// `RouterPresentationsModifier` for the content it presents; a
     /// `RoutingView` built anywhere else shows no button unless asked.
@@ -20,6 +24,7 @@ public struct RoutingView<Content: View, Destination: Routable>: View
     ) {
         self.router = router
         self.dismissOptions = dismissOptions
+        root = nil
         rootContent = content
     }
 
@@ -30,7 +35,10 @@ public struct RoutingView<Content: View, Destination: Routable>: View
         root: Destination,
         dismissOptions: DismissButtonPresentationOptions? = nil
     ) {
-        self.init(router, dismissOptions: dismissOptions) { $0.start(root) }
+        self.router = router
+        self.dismissOptions = dismissOptions
+        self.root = root
+        rootContent = { $0.start(root) }
     }
 
     /// The same button on pushed views, only when the options ask for it.
@@ -41,6 +49,7 @@ public struct RoutingView<Content: View, Destination: Routable>: View
     public var body: some View {
         NavigationStack(path: $router.path) {
             rootContent(router)
+                .id(root)
                 .ifLet(dismissOptions) { view, options in
                     view.toolbar {
                         DismissToolbar(

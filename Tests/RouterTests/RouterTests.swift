@@ -752,6 +752,30 @@ struct SplitRouterTests {
         #expect(router.sidebar.isFullyAtRoot)
     }
 
+    /// A new pick replaces the previous one, and what was pushed on it.
+    @MainActor
+    @Test func showReplacesThePick() {
+        let router = SplitRouter<TestRoute>()
+        router.show(.detail("1"))
+        router.push(route: .settings)
+
+        router.show(.detail("2"))
+
+        #expect(router.selection == .detail("2"))
+        #expect(router.path.isEmpty)
+        #expect(router.preferredCompactColumn == .detail)
+    }
+
+    @MainActor
+    @Test func popAllToRootClearsThePick() {
+        let router = SplitRouter<TestRoute>()
+        router.show(.profile)
+
+        router.popAllToRoot()
+
+        #expect(router.selection == nil)
+    }
+
     /// A split router is a `Router`, so it can be handed to anything taking one.
     @MainActor
     @Test func isUsableAsARouter() {
